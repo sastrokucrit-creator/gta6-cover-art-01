@@ -1,12 +1,60 @@
-html, body { margin: 0; height: 100%; background: #f2f0f4; color: #1d1b22; font: 15px/1.4 system-ui, sans-serif; }
-.app { display: flex; gap: 32px; align-items: center; justify-content: center; height: 100%; padding: 24px; box-sizing: border-box; }
-.controls { display: flex; flex-direction: column; gap: 14px; width: 280px; }
-.controls h1 { margin: 0; font-size: 28px; }
-.controls p { margin: 0; color: #5c5866; }
-label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
-input[type=text] { font: inherit; padding: 8px; border: 1px solid #c9c4d1; border-radius: 6px; }
-button { font: inherit; font-weight: 700; padding: 10px; border: 0; border-radius: 6px; background: #1d1b22; color: #fff; cursor: pointer; }
-canvas { width: min(70vh, 60vw); height: min(70vh, 60vw); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); }
+@font-face {
+  font-family: 'Anton';
+  src: url('./fonts/Anton-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Pacifico';
+  src: url('./fonts/Pacifico-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+html, body { margin: 0; min-height: 100%; background: #14101c; color: #f2eef7; font: 15px/1.45 system-ui, -apple-system, sans-serif; }
+.app { display: flex; gap: 0; min-height: 100vh; }
+.controls { width: 340px; flex: 0 0 340px; padding: 20px 20px 32px; background: #1c1626; border-right: 1px solid #332a45; box-sizing: border-box; overflow-y: auto; }
+.controls header h1 { margin: 0 0 4px; font-family: Anton, 'Arial Narrow', sans-serif; font-size: 30px; letter-spacing: 1px; color: #ffb347; }
+.controls header p { margin: 0 0 6px; color: #b9aec9; font-size: 13px; }
+fieldset { border: 1px solid #332a45; border-radius: 10px; padding: 12px; margin: 14px 0 0; }
+legend { font-family: Anton, 'Arial Narrow', sans-serif; font-size: 14px; letter-spacing: 1px; color: #ff8ad8; padding: 0 6px; }
+label { display: flex; flex-direction: column; gap: 5px; font-weight: 600; font-size: 13px; margin-top: 8px; }
+label:first-child { margin-top: 0; }
+input[type=text], select { font: inherit; padding: 8px 10px; border: 1px solid #4a3f61; border-radius: 6px; background: #241d31; color: #f2eef7; }
+input[type=text]:focus, select:focus { outline: 2px solid #ff8ad8; outline-offset: 1px; }
+input[type=range] { width: 100%; accent-color: #ff8ad8; }
+.row { display: flex; gap: 10px; margin-top: 8px; }
+.row label { flex: 1; }
+label.check { flex-direction: row; align-items: center; gap: 8px; margin-top: 8px; }
+label.check input { width: 18px; height: 18px; accent-color: #ff8ad8; }
+#subtitle { font-family: Pacifico, cursive; font-size: 16px; }
+button { font: inherit; font-weight: 700; padding: 9px 12px; border: 0; border-radius: 7px; background: #332a45; color: #f2eef7; cursor: pointer; }
+button:hover { background: #453a5c; }
+button.active { background: #ff8ad8; color: #1c1626; }
+button.export { width: 100%; margin-top: 10px; padding: 13px; font-size: 17px; background: linear-gradient(90deg, #ff7a3c, #ff2e88); color: #fff; }
+button.export:hover { filter: brightness(1.12); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { padding: 7px 10px; font-size: 13px; }
+.upload { display: block; padding: 10px; border: 1px dashed #6b5a8a; border-radius: 8px; text-align: center; cursor: pointer; }
+.upload input { display: none; }
+.tray { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-height: 20px; }
+.tray img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 2px solid transparent; cursor: pointer; }
+.tray img.selected { border-color: #ffb347; }
+.tray img.assigned { outline: 2px solid #ff8ad8; outline-offset: 1px; }
+.hint { color: #b9aec9; font-size: 12px; margin: 8px 0 0; }
+#status { color: #9fe8b0; min-height: 1.2em; margin: 8px 0 0; font-size: 13px; }
+.preview { flex: 1; display: flex; align-items: center; justify-content: center; padding: 28px; background: radial-gradient(ellipse at 50% 30%, #241a35 0%, #14101c 70%); }
+.stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+#cover { max-width: min(72vh, 100%); max-height: 76vh; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); cursor: grab; background: #0d0b12; }
+#cover:active { cursor: grabbing; }
+.panel-label { margin: 0; color: #b9aec9; font-size: 13px; }
 body.shot-cover .controls { display: none; }
-body.shot-cover .app { padding: 0; }
-body.shot-cover canvas { width: 100vw; height: 100vh; box-shadow: none; }
+body.shot-cover .preview { padding: 0; background: #0d0b12; }
+body.shot-cover #cover { max-width: none; max-height: none; width: 100vw; height: 100vh; box-shadow: none; }
+body.shot-cover .panel-label { display: none; }
+/* In editor screenshots the controls column is taller than the viewport, so
+   the preview column would centre the canvas below the fold. Pin the stage
+   to the top instead, so the whole cover is in frame. */
+body.shot-editor .preview { align-items: flex-start; }

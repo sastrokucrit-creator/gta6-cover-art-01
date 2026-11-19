@@ -1,5 +1,1 @@
-[
-  { "name": "1-cover.jpg", "query": "?shot=cover&photo=pier&caption=Sunset%20Heist", "w": 1080, "h": 1080 },
-  { "name": "2-editor.jpg", "query": "?shot=editor&photo=boulevard&caption=Boulevard%20Queen", "w": 1280, "h": 720 },
-  { "name": "3-cover.jpg", "query": "?shot=cover&photo=boulevard&caption=Boulevard%20Queen", "w": 1080, "h": 1080 }
-]
+[{"h":720,"name":"1-cover.jpg","query":"?shot=cover&size=wide&layout=showcase&grade=sunset&caption=Sunset%20Heist&subtitle=a%20sun-soaked%20getaway&tagline=Every%20street%20tells%20a%20story&badge=Fresh&halftone=1&photo=lifeguard,sunset,neon,pier,boulevard","w":1280},{"h":800,"name":"2-editor.jpg","query":"?shot=editor&size=square&layout=showcase&grade=sunset&caption=Sunset%20Heist&photo=lifeguard,sunset,neon,pier,boulevard","w":1280},{"h":1080,"name":"3-cover.jpg","query":"?shot=cover&size=square&layout=keyart&grade=neon&caption=Neon%20Nights&subtitle=the%20city%20never%20sleeps&tagline=Every%20street%20tells%20a%20story&badge=Fresh&halftone=1&photo=neon,sunset,lifeguard,pier,boulevard,sunset","w":1080},{"h":1280,"name":"4-cover.jpg","query":"?shot=cover&size=portrait&layout=poster&grade=sunset&caption=Golden%20Hour&subtitle=a%20sun-soaked%20getaway&tagline=Every%20street%20tells%20a%20story&badge=Fresh&halftone=1&photo=sunset,lifeguard,pier,boulevard","w":1024}]

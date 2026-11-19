@@ -3,20 +3,100 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cover Snap</title>
+<title>Vice Cover Studio — GTA-style cover art maker</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <main class="app">
-  <section class="controls">
-    <h1>Cover Snap</h1>
-    <p>A photo and a caption, made into a square cover.</p>
-    <label>Photo <input id="photo" type="file" accept="image/*"></label>
-    <label>Caption <input id="caption" type="text" maxlength="40" value="Sunset Heist"></label>
-    <button id="export" type="button">Export PNG 1080 x 1080</button>
-    <p id="status" role="status"></p>
+  <section class="controls" aria-label="Cover editor controls">
+    <header>
+      <h1>VICE COVER STUDIO</h1>
+      <p>Your photo, your words — a poster-style cover, ready to share.</p>
+    </header>
+
+    <fieldset>
+      <legend>1 · Photos</legend>
+      <label class="upload">Add photos from your machine
+        <input id="photo" type="file" accept="image/*" multiple>
+      </label>
+      <div id="tray" class="tray" aria-label="Your photos"></div>
+      <div class="row">
+        <button id="fillAll" type="button">Fill every panel with this photo</button>
+        <button id="samples" type="button">Load sample photos</button>
+      </div>
+      <p class="hint">Click a photo to put it in the selected panel. Click a panel in the preview to select it. Drag a panel to move its photo, scroll to zoom.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>2 · Layout</legend>
+      <div id="layouts" class="chips" role="group" aria-label="Panel layout"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>3 · Colour grade</legend>
+      <div id="grades" class="chips" role="group" aria-label="Colour grade"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>4 · Title block</legend>
+      <label>Title
+        <input id="caption" type="text" maxlength="60" value="Sunset Heist">
+      </label>
+      <label>Script subtitle
+        <input id="subtitle" type="text" maxlength="60" value="a sun-soaked getaway">
+      </label>
+      <label>Tagline
+        <input id="tagline" type="text" maxlength="80" value="Every street tells a story">
+      </label>
+      <div class="row">
+        <label>Badge
+          <input id="badgeText" type="text" maxlength="8" value="Fresh">
+        </label>
+        <label class="check">Show badge
+          <input id="showBadge" type="checkbox" checked>
+        </label>
+        <label class="check">Halftone dots
+          <input id="halftone" type="checkbox" checked>
+        </label>
+      </div>
+      <div class="row">
+        <label>Position
+          <select id="captionPos">
+            <option value="bottom" selected>Bottom</option>
+            <option value="top">Top</option>
+          </select>
+        </label>
+        <label>Text fill
+          <select id="textStyle">
+            <option value="solid">Solid white</option>
+            <option value="sunset" selected>Sunset gradient</option>
+            <option value="neon">Neon gradient</option>
+          </select>
+        </label>
+      </div>
+      <label>Title size <span id="captionSizeVal">100%</span>
+        <input id="captionSize" type="range" min="60" max="140" value="100">
+      </label>
+      <label>Outline <span id="outlineVal">7%</span>
+        <input id="outline" type="range" min="0" max="14" value="7">
+      </label>
+      <p class="hint">Showcase and Poster put the title in a full-width strip under the photos; the other layouts draw it over the photos. The badge is the yellow starburst in the top corner.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>5 · Size &amp; export</legend>
+      <div id="sizes" class="chips" role="group" aria-label="Export size"></div>
+      <button id="export" type="button" class="export">Export PNG</button>
+      <p id="status" role="status"></p>
+    </fieldset>
   </section>
-  <canvas id="cover" width="1080" height="1080" aria-label="The cover"></canvas>
+
+  <section class="preview" aria-label="Live preview">
+    <div class="stage">
+      <canvas id="cover" width="1080" height="1080" aria-label="The cover preview"></canvas>
+      <p id="panelLabel" class="panel-label">Panel 1 of 1 — click a panel to select it</p>
+    </div>
+  </section>
 </main>
 <script type="module" src="./src/main.js"></script>
 </body>

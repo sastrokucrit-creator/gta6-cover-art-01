@@ -1,51 +1,341 @@
-// Wires the page: pick a photo, type a caption, export the square cover as a PNG. A `?shot=` query sets up a fixed
-// scene for a screenshot instead (./shots.js).
-import { drawCover } from './cover.js';
+// Vice Cover Studio — the editor. Wires the controls to the render engine:
+// photo tray, panel picking, drag-to-pan and wheel zoom, caption and grade
+// controls, and PNG export in the three post sizes. A `?shot=` query sets up
+// a fixed scene for a screenshot instead (./shots.js).
+
+import { SIZES, LAYOUTS, GRADES, layoutPanels, renderCover } from './cover.js';
 import { runShot } from './shots.js';
 
 const canvas = document.getElementById('cover');
-const caption = document.getElementById('caption');
-const status = document.getElementById('status');
-let photo = null;
+const trayEl = document.getElementById('tray');
+const statusEl = document.getElementById('status');
+const panelLabel = document.getElementById('panelLabel');
 
-function redraw() {
-  drawCover(canvas, photo, caption.value);
+// The working state. A panel holds { photo, zoom, ox, oy } where photo is an
+// index into state.tray (or null for an empty panel).
+export const state = {
+  layout: 'showcase',
+  grade: 'sunset',
+  size: 'wide',
+  caption: 'Sunset Heist',
+  subtitle: 'a sun-soaked getaway',
+  tagline: 'Every street tells a story',
+  badgeText: 'Fresh',
+  showBadge: true,
+  halftone: true,
+  captionPos: 'bottom',
+  captionScale: 1,
+  outline: 0.07,
+  textStyle: 'sunset',
+  tray: [],
+  panels: [],
+  selectedPanel: 0,
+  selectedTray: 0,
+};
+
+function panelCount() {
+  return LAYOUTS[state.layout].panels;
 }
 
-/** Loads an image from a URL, resolving to the image once it can be drawn. */
+function ensurePanels() {
+  while (state.panels.length < panelCount()) {
+    const first = state.tray[0];
+    state.panels.push({ photo: first ? 0 : null, zoom: 1, ox: 0, oy: 0 });
+  }
+  state.panels.length = panelCount();
+  if (state.selectedPanel >= panelCount()) state.selectedPanel = 0;
+}
+
+function renderState() {
+  ensurePanels();
+  const panels = state.panels.map((p) => ({
+    photo: p.photo === null ? null : state.tray[p.photo]?.img ?? null,
+    zoom: p.zoom,
+    ox: p.ox,
+    oy: p.oy,
+  }));
+  renderCover(canvas, { ...state, panels });
+  const n = panelCount();
+  panelLabel.textContent = `Panel ${state.selectedPanel + 1} of ${n} — ${LAYOUTS[state.layout].label.split(' — ')[0]} · ${GRADES[state.grade].label.split(' — ')[0]}`;
+}
+
+let renderQueued = false;
+function redraw() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => {
+    renderQueued = false;
+    renderState();
+  });
+}
+
+/** Loads an image from a URL, resolving once it can be drawn. */
 export function loadImage(url) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = reject;
+    img.onerror = () => reject(new Error('could not load ' + url));
     img.src = url;
   });
 }
 
-document.getElementById('photo').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  photo = await loadImage(URL.createObjectURL(file));
-  redraw();
-});
-caption.addEventListener('input', redraw);
-document.getElementById('export').addEventListener('click', () => {
-  canvas.toBlob((blob) => {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'cover-1080x1080.png';
-    a.click();
-    status.textContent = 'Saved cover-1080x1080.png';
-  }, 'image/png');
-});
-
-const shot = new URLSearchParams(location.search).get('shot');
-if (shot) {
-  runShot(shot, new URLSearchParams(location.search), async (sample, text) => {
-    photo = await loadImage(sample);
-    caption.value = text;
-    redraw();
+function refreshTray() {
+  trayEl.innerHTML = '';
+  state.tray.forEach((item, i) => {
+    const thumb = document.createElement('img');
+    thumb.src = item.url;
+    thumb.alt = item.name;
+    thumb.title = item.name;
+    if (i === state.selectedTray) thumb.classList.add('selected');
+    if (state.panels.some((p) => p.photo === i)) thumb.classList.add('assigned');
+    thumb.addEventListener('click', () => {
+      state.selectedTray = i;
+      const panel = state.panels[state.selectedPanel];
+      if (panel) {
+        panel.photo = i;
+        panel.zoom = 1;
+        panel.ox = 0;
+        panel.oy = 0;
+      }
+      refreshTray();
+      redraw();
+    });
+    trayEl.appendChild(thumb);
   });
-} else {
+}
+
+export async function loadSamples() {
+  const names = ['sunset', 'neon', 'pier', 'boulevard', 'lifeguard'];
+  for (const name of names) {
+    if (state.tray.some((t) => t.name === name)) continue;
+    try {
+      const img = await loadImage(`samples/${name}.jpg`);
+      state.tray.push({ img, name, url: `samples/${name}.jpg` });
+    } catch {
+      // A missing sample is not fatal; the tray just holds fewer photos.
+    }
+  }
+  if (state.panels.every((p) => p.photo === null) && state.tray.length) {
+    state.panels.forEach((p) => { p.photo = 0; });
+  }
+  refreshTray();
   redraw();
 }
+
+// --- Chips (layout / grade / size) ---------------------------------------
+function buildChips(el, options, current, onPick) {
+  el.innerHTML = '';
+  for (const [key, opt] of Object.entries(options)) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = opt.label.split(' — ')[0];
+    b.title = opt.label;
+    if (key === current) b.classList.add('active');
+    b.addEventListener('click', () => {
+      onPick(key);
+      buildChips(el, options, key, onPick);
+    });
+    el.appendChild(b);
+  }
+}
+
+buildChips(document.getElementById('layouts'), LAYOUTS, state.layout, (key) => {
+  state.layout = key;
+  ensurePanels();
+  redraw();
+});
+buildChips(document.getElementById('grades'), GRADES, state.grade, (key) => {
+  state.grade = key;
+  redraw();
+});
+buildChips(document.getElementById('sizes'), SIZES, state.size, (key) => {
+  state.size = key;
+  redraw();
+});
+
+// --- Title block controls --------------------------------------------------
+const captionInput = document.getElementById('caption');
+const subtitleInput = document.getElementById('subtitle');
+const taglineInput = document.getElementById('tagline');
+const badgeInput = document.getElementById('badgeText');
+captionInput.addEventListener('input', () => { state.caption = captionInput.value; redraw(); });
+subtitleInput.addEventListener('input', () => { state.subtitle = subtitleInput.value; redraw(); });
+taglineInput.addEventListener('input', () => { state.tagline = taglineInput.value; redraw(); });
+badgeInput.addEventListener('input', () => { state.badgeText = badgeInput.value; redraw(); });
+document.getElementById('showBadge').addEventListener('change', (e) => {
+  state.showBadge = e.target.checked;
+  redraw();
+});
+document.getElementById('halftone').addEventListener('change', (e) => {
+  state.halftone = e.target.checked;
+  redraw();
+});
+document.getElementById('captionPos').addEventListener('change', (e) => {
+  state.captionPos = e.target.value;
+  redraw();
+});
+document.getElementById('textStyle').addEventListener('change', (e) => {
+  state.textStyle = e.target.value;
+  redraw();
+});
+const sizeRange = document.getElementById('captionSize');
+sizeRange.addEventListener('input', () => {
+  state.captionScale = Number(sizeRange.value) / 100;
+  document.getElementById('captionSizeVal').textContent = sizeRange.value + '%';
+  redraw();
+});
+const outlineRange = document.getElementById('outline');
+outlineRange.addEventListener('input', () => {
+  state.outline = Number(outlineRange.value) / 100;
+  document.getElementById('outlineVal').textContent = outlineRange.value + '%';
+  redraw();
+});
+
+// --- Photo upload ----------------------------------------------------------
+document.getElementById('photo').addEventListener('change', async (e) => {
+  for (const file of e.target.files) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await loadImage(url);
+      state.tray.push({ img, name: file.name, url });
+      state.selectedTray = state.tray.length - 1;
+    } catch {
+      URL.revokeObjectURL(url);
+    }
+  }
+  e.target.value = '';
+  refreshTray();
+  redraw();
+});
+
+document.getElementById('samples').addEventListener('click', loadSamples);
+document.getElementById('fillAll').addEventListener('click', () => {
+  const photo = state.selectedTray;
+  if (state.tray[photo] === undefined) return;
+  state.panels.forEach((p) => { p.photo = photo; p.zoom = 1; p.ox = 0; p.oy = 0; });
+  refreshTray();
+  redraw();
+});
+
+// --- Panel picking, panning, zooming ---------------------------------------
+function canvasPoint(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) * (canvas.width / rect.width),
+    y: (e.clientY - rect.top) * (canvas.height / rect.height),
+  };
+}
+
+function panelAt(x, y) {
+  const rects = layoutPanels(state.layout, canvas.width, canvas.height);
+  for (let i = 0; i < rects.length; i++) {
+    const r = rects[i];
+    if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return i;
+  }
+  return -1;
+}
+
+let drag = null;
+canvas.addEventListener('pointerdown', (e) => {
+  const p = canvasPoint(e);
+  const i = panelAt(p.x, p.y);
+  if (i < 0) return;
+  state.selectedPanel = i;
+  refreshTray();
+  redraw();
+  drag = { x: p.x, y: p.y, moved: false };
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  const p = canvasPoint(e);
+  const dx = p.x - drag.x, dy = p.y - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true;
+  const panel = state.panels[state.selectedPanel];
+  if (panel && panel.photo !== null) {
+    panel.ox += dx;
+    panel.oy += dy;
+    redraw();
+  }
+  drag.x = p.x;
+  drag.y = p.y;
+});
+canvas.addEventListener('pointerup', () => { drag = null; });
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const p = canvasPoint(e);
+  const i = panelAt(p.x, p.y);
+  if (i < 0) return;
+  state.selectedPanel = i;
+  const panel = state.panels[i];
+  if (panel && panel.photo !== null) {
+    panel.zoom = Math.max(1, Math.min(4, panel.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+    redraw();
+  }
+}, { passive: false });
+
+// --- Export ------------------------------------------------------------------
+function exportCanvas(sizeName) {
+  const size = SIZES[sizeName] || SIZES[state.size];
+  const off = document.createElement('canvas');
+  const panels = state.panels.map((p) => ({
+    photo: p.photo === null ? null : state.tray[p.photo]?.img ?? null,
+    zoom: p.zoom,
+    ox: p.ox,
+    oy: p.oy,
+  }));
+  renderCover(off, { ...state, panels, size: sizeName });
+  return new Promise((resolve) => {
+    off.toBlob((blob) => resolve({ blob, w: size.w, h: size.h }), 'image/png');
+  });
+}
+
+export async function exportPNG(sizeName) {
+  const name = sizeName || state.size;
+  const { blob, w, h } = await exportCanvas(name);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `vice-cover-${w}x${h}.png`;
+  a.click();
+  statusEl.textContent = `Saved vice-cover-${w}x${h}.png (${Math.round(blob.size / 1024)} KiB)`;
+  return { blob, w, h };
+}
+
+document.getElementById('export').addEventListener('click', () => exportPNG());
+
+// --- Shot scenes and the test API --------------------------------------------
+window.__vice = {
+  state,
+  render: redraw,
+  loadSamples,
+  exportPNG,
+  setLayout: (key) => { state.layout = key; ensurePanels(); redraw(); },
+  setGrade: (key) => { state.grade = key; redraw(); },
+  setSize: (key) => { state.size = key; redraw(); },
+  setCaption: (text) => { state.caption = text; captionInput.value = text; redraw(); },
+  setSubtitle: (text) => { state.subtitle = text; subtitleInput.value = text; redraw(); },
+  setTagline: (text) => { state.tagline = text; taglineInput.value = text; redraw(); },
+  setBadge: (text) => { state.badgeText = text; badgeInput.value = text; redraw(); },
+  setHalftone: (on) => { state.halftone = !!on; redraw(); },
+};
+
+const shot = new URLSearchParams(location.search).get('shot');
+const fontsReady = (async () => {
+  try {
+    await document.fonts.load('100px Anton');
+    await document.fonts.load('40px Pacifico');
+    await document.fonts.ready;
+  } catch {
+    // The title falls back to a narrow sans if the fonts fail to load.
+  }
+})();
+
+if (shot) {
+  await runShot(shot, new URLSearchParams(location.search));
+} else {
+  ensurePanels();
+  await fontsReady;
+  await loadSamples();
+  redraw();
+}
+window.__vice.ready = true;
