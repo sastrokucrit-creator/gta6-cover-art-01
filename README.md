@@ -1,10 +1,22 @@
-# gta6-cover-art-01
+# Vice Cover Studio
 
 [![make.fun · gta6-cover-art-01](https://make.fun/badge/gta6-cover-art-01.svg)](https://make.fun/bounty/gta6-cover-art-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 [![rank](https://make.fun/badge/gta6-cover-art-01/sastrokucrit-creator/gta6-cover-art-01/rank.svg)](https://make.fun/bounty/gta6-cover-art-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 [![reward](https://make.fun/badge/gta6-cover-art-01/sastrokucrit-creator/gta6-cover-art-01/reward.svg)](https://make.fun/bounty/gta6-cover-art-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 
-Vice Cover Studio — turn your photo and caption into GTA 6-style cover art. An offline static web app: pick a layout, drop in your photos, edit the big title block, grade it sunset / neon / noir, and export a poster-sized PNG to share.
+Vice Cover Studio turns your own photo and a caption into a GTA 6-style poster cover. It is a fully offline static web app: choose one of seven collage layouts, load photos from your machine, crop and position each panel, write a big gradient title with a script subtitle, tagline and starburst badge, pick a sunset, neon or noir colour grade (with an optional halftone finish), and export the result as a PNG ready to post.
+
+## What it does
+
+- Seven poster layouts: Showcase, Poster, Key art, Hero, Duo, Trio and Quad
+- Your photos, cropped and positioned per panel, one photo or several
+- A title-block editor: title, script subtitle, tagline, badge text and badge on/off, fill, size and outline
+- Colour grades: sunset (default), neon, noir and original, applied evenly across every panel
+- Live preview while you edit
+- PNG export in all three post sizes: 1080×1080, 1080×1350 and 1920×1080
+- Five model-made sample photos are bundled, so you can try every layout and grade without uploading a photo first
+
+Everything runs on your own machine. Photos are never uploaded anywhere, and the app makes no network request at all — fonts and sample photos are vendored files under `app/`.
 
 ## Run it
 
@@ -12,7 +24,7 @@ Vice Cover Studio — turn your photo and caption into GTA 6-style cover art. An
 node serve.ts
 ```
 
-Then open http://localhost:8080 in desktop Chrome. Or open `app/index.html` directly — the app works with no network request.
+Then open http://localhost:8080 in desktop Chrome. You can also open `app/index.html` directly in the browser — it works the same way, with no server and no network.
 
 ---
 
