@@ -1,8 +1,11 @@
 // Fixed scenes for screenshots and tests: ?shot=cover shows the cover alone
 // (controls hidden), ?shot=editor shows the editor with photos loaded.
 // Query params: layout, grade, size, caption, subtitle, tagline, badge,
-// halftone, photo (a comma list of sample names, one per panel, the last one
-// repeating). window.__shotReady is set once the scene has painted.
+// badgeStyle, halftone, photo (a comma list of sample names, one per panel,
+// the last one repeating), captions (per-panel labels, "|" separated).
+// window.__shotReady is set once the scene has painted.
+
+import { defaultPanelLabel } from './cover.js';
 
 function loadImage(url) {
   return new Promise((resolve, reject) => {
@@ -32,6 +35,8 @@ export async function runShot(shot, query) {
   if (tagline !== null) vice.setTagline(tagline);
   const badge = query.get('badge');
   if (badge !== null) vice.setBadge(badge);
+  const badgeStyle = query.get('badgeStyle');
+  if (badgeStyle) vice.setBadgeStyle(badgeStyle);
   const halftone = query.get('halftone');
   if (halftone !== null) vice.setHalftone(halftone !== '0');
   const showBadge = query.get('showBadge');
@@ -51,7 +56,19 @@ export async function runShot(shot, query) {
         p.zoom = 1;
         p.ox = 0;
         p.oy = 0;
+        // The caption belongs to the photo, not the panel slot: a new photo
+        // gets its own default story label.
+        p.caption = defaultPanelLabel(name);
       }
+    });
+  }
+  // Per-panel story captions, panels separated by "|". When absent, the
+  // default caption for each panel's photo is used.
+  const captions = query.get('captions');
+  if (captions !== null) {
+    const list = captions.split('|');
+    vice.state.panels.forEach((p, i) => {
+      if (i < list.length) p.caption = list[i];
     });
   }
   try {

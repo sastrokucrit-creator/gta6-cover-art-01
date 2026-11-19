@@ -25,6 +25,12 @@
         <button id="samples" type="button">Load sample photos</button>
       </div>
       <p class="hint">Click a photo to put it in the selected panel. Click a panel in the preview to select it. Drag a panel to move its photo, scroll to zoom.</p>
+      <label>Caption for the selected panel
+        <input id="panelCaption" type="text" maxlength="40" value="" placeholder="e.g. OCEAN DRIVE · 5:42 PM">
+      </label>
+      <label class="check">Show panel captions
+        <input id="showPanelLabels" type="checkbox" checked>
+      </label>
     </fieldset>
 
     <fieldset>
@@ -49,7 +55,16 @@
         <input id="tagline" type="text" maxlength="80" value="Every street tells a story">
       </label>
       <div class="row">
-        <label>Badge
+        <label>Badge style
+          <select id="badgeStyle">
+            <option value="starburst" selected>Starburst badge</option>
+            <option value="wanted">WANTED poster</option>
+            <option value="est">EST. seal</option>
+            <option value="vol">VOL. ticket</option>
+            <option value="ribbon">Collector's ribbon</option>
+          </select>
+        </label>
+        <label>Badge text / Vol. no.
           <input id="badgeText" type="text" maxlength="8" value="Fresh">
         </label>
         <label class="check">Show badge
@@ -80,7 +95,7 @@
       <label>Outline <span id="outlineVal">7%</span>
         <input id="outline" type="range" min="0" max="14" value="7">
       </label>
-      <p class="hint">Showcase and Poster put the title in a full-width strip under the photos; the other layouts draw it over the photos. The badge is the yellow starburst in the top-left corner.</p>
+      <p class="hint">The title is giant and overlaps the foot of the photos on a dark scrim. The badge sits in a corner — starburst and EST. top-left, WANTED, VOL. and the ribbon top-right. The badge text field doubles as the VOL. number.</p>
     </fieldset>
 
     <fieldset>

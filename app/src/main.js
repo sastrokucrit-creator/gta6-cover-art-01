@@ -3,7 +3,7 @@
 // controls, and PNG export in the three post sizes. A `?shot=` query sets up
 // a fixed scene for a screenshot instead (./shots.js).
 
-import { SIZES, LAYOUTS, GRADES, layoutPanels, renderCover } from './cover.js';
+import { SIZES, LAYOUTS, GRADES, BADGE_STYLES, layoutPanels, renderCover, defaultPanelLabel } from './cover.js';
 import { runShot } from './shots.js';
 
 const canvas = document.getElementById('cover');
@@ -21,7 +21,9 @@ export const state = {
   subtitle: 'a sun-soaked getaway',
   tagline: 'Every street tells a story',
   badgeText: 'Fresh',
+  badgeStyle: 'starburst',
   showBadge: true,
+  showPanelLabels: true,
   halftone: true,
   captionPos: 'bottom',
   captionScale: 1,
@@ -40,7 +42,11 @@ function panelCount() {
 function ensurePanels() {
   while (state.panels.length < panelCount()) {
     const first = state.tray[0];
-    state.panels.push({ photo: first ? 0 : null, zoom: 1, ox: 0, oy: 0 });
+    state.panels.push({
+      photo: first ? 0 : null,
+      zoom: 1, ox: 0, oy: 0,
+      caption: first ? defaultPanelLabel(first.name) : '',
+    });
   }
   state.panels.length = panelCount();
   if (state.selectedPanel >= panelCount()) state.selectedPanel = 0;
@@ -53,10 +59,14 @@ function renderState() {
     zoom: p.zoom,
     ox: p.ox,
     oy: p.oy,
+    caption: p.caption || '',
   }));
   renderCover(canvas, { ...state, panels });
   const n = panelCount();
+  const cap = state.panels[state.selectedPanel]?.caption || '';
   panelLabel.textContent = `Panel ${state.selectedPanel + 1} of ${n} — ${LAYOUTS[state.layout].label.split(' — ')[0]} · ${GRADES[state.grade].label.split(' — ')[0]}`;
+  const capInput = document.getElementById('panelCaption');
+  if (capInput && document.activeElement !== capInput) capInput.value = cap;
 }
 
 let renderQueued = false;
@@ -96,6 +106,7 @@ function refreshTray() {
         panel.zoom = 1;
         panel.ox = 0;
         panel.oy = 0;
+        panel.caption = defaultPanelLabel(state.tray[i].name);
       }
       refreshTray();
       redraw();
@@ -116,7 +127,10 @@ export async function loadSamples() {
     }
   }
   if (state.panels.every((p) => p.photo === null) && state.tray.length) {
-    state.panels.forEach((p) => { p.photo = 0; });
+    state.panels.forEach((p) => {
+      p.photo = 0;
+      p.caption = defaultPanelLabel(state.tray[0].name);
+    });
   }
   refreshTray();
   redraw();
@@ -162,6 +176,21 @@ captionInput.addEventListener('input', () => { state.caption = captionInput.valu
 subtitleInput.addEventListener('input', () => { state.subtitle = subtitleInput.value; redraw(); });
 taglineInput.addEventListener('input', () => { state.tagline = taglineInput.value; redraw(); });
 badgeInput.addEventListener('input', () => { state.badgeText = badgeInput.value; redraw(); });
+document.getElementById('badgeStyle').addEventListener('change', (e) => {
+  state.badgeStyle = e.target.value;
+  redraw();
+});
+document.getElementById('showPanelLabels').addEventListener('change', (e) => {
+  state.showPanelLabels = e.target.checked;
+  redraw();
+});
+document.getElementById('panelCaption').addEventListener('input', (e) => {
+  const panel = state.panels[state.selectedPanel];
+  if (panel) {
+    panel.caption = e.target.value;
+    redraw();
+  }
+});
 document.getElementById('showBadge').addEventListener('change', (e) => {
   state.showBadge = e.target.checked;
   redraw();
@@ -212,7 +241,13 @@ document.getElementById('samples').addEventListener('click', loadSamples);
 document.getElementById('fillAll').addEventListener('click', () => {
   const photo = state.selectedTray;
   if (state.tray[photo] === undefined) return;
-  state.panels.forEach((p) => { p.photo = photo; p.zoom = 1; p.ox = 0; p.oy = 0; });
+  state.panels.forEach((p) => {
+    p.photo = photo;
+    p.zoom = 1;
+    p.ox = 0;
+    p.oy = 0;
+    p.caption = defaultPanelLabel(state.tray[photo].name);
+  });
   refreshTray();
   redraw();
 });
@@ -283,6 +318,7 @@ function exportCanvas(sizeName) {
     zoom: p.zoom,
     ox: p.ox,
     oy: p.oy,
+    caption: p.caption || '',
   }));
   renderCover(off, { ...state, panels, size: sizeName });
   return new Promise((resolve) => {
@@ -316,6 +352,17 @@ window.__vice = {
   setSubtitle: (text) => { state.subtitle = text; subtitleInput.value = text; redraw(); },
   setTagline: (text) => { state.tagline = text; taglineInput.value = text; redraw(); },
   setBadge: (text) => { state.badgeText = text; badgeInput.value = text; redraw(); },
+  setBadgeStyle: (style) => {
+    state.badgeStyle = style;
+    const sel = document.getElementById('badgeStyle');
+    if (sel) sel.value = style;
+    redraw();
+  },
+  setPanelCaption: (text, panelIdx) => {
+    const panel = state.panels[panelIdx ?? state.selectedPanel];
+    if (panel) { panel.caption = text; redraw(); }
+  },
+  setShowPanelLabels: (on) => { state.showPanelLabels = !!on; redraw(); },
   setHalftone: (on) => { state.halftone = !!on; redraw(); },
 };
 
