@@ -300,17 +300,21 @@ export function drawTitleBlock(ctx, W, H, state, band) {
   }
 }
 
-// A yellow starburst badge with dark text, tilted, in the cover's top-right
-// corner. Pure canvas path, no image.
+// A yellow starburst badge with dark text, tilted, in the cover's top-left
+// corner. Top-left on purpose: in multi-panel layouts the top-right corner
+// can hold a portrait's face (the hero panel), while the top-left sits over
+// sky or street in the usual shots. The tilt is mirrored from the old
+// top-right placement so the starburst still leans into the cover.
+// Pure canvas path, no image.
 export function drawBadge(ctx, W, H, text) {
   const label = (text || '').trim().toUpperCase();
   if (!label) return;
   const r = Math.round(Math.min(W, H) * 0.085);
-  const cx = W - r - Math.round(W * 0.02);
+  const cx = r + Math.round(W * 0.02);
   const cy = r + Math.round(H * 0.025);
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.rotate(-0.14);
+  ctx.rotate(0.14);
   ctx.beginPath();
   const spikes = 14;
   for (let i = 0; i < spikes * 2; i++) {
