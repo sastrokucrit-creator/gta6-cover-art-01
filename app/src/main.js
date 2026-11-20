@@ -3,7 +3,7 @@
 // controls, and PNG export in the three post sizes. A `?shot=` query sets up
 // a fixed scene for a screenshot instead (./shots.js).
 
-import { SIZES, LAYOUTS, GRADES, BADGE_STYLES, FACE_ANCHORS, layoutPanels, renderCover, defaultPanelLabel } from './cover.js';
+import { SIZES, LAYOUTS, GRADES, BADGE_STYLES, FACE_ANCHORS, footerHeight, layoutPanels, renderCover, defaultPanelLabel } from './cover.js';
 import { runShot } from './shots.js';
 
 const canvas = document.getElementById('cover');
@@ -297,7 +297,8 @@ function canvasPoint(e) {
 }
 
 function panelAt(x, y) {
-  const rects = layoutPanels(state.layout, canvas.width, canvas.height);
+  // Same geometry as the render: panels end above the footer band.
+  const rects = layoutPanels(state.layout, canvas.width, canvas.height, footerHeight(canvas.height, state));
   for (let i = 0; i < rects.length; i++) {
     const r = rects[i];
     if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return i;

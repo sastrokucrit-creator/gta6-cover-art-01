@@ -11,7 +11,7 @@ export const SIZES = {
 export const LAYOUTS = {
   showcase: { panels: 5, label: 'Showcase — hero left, four small, title over photos' },
   poster: { panels: 4, label: 'Poster — big top, three below, title over photos' },
-  keyart: { panels: 6, label: 'Key art — two heroes, three stacked, bottom strip' },
+  keyart: { panels: 6, label: 'Key art — six portraits, three over three, title over the middle' },
   hero: { panels: 1, label: 'Hero — one full photo' },
   duo: { panels: 2, label: 'Duo — two tall panels' },
   trio: { panels: 3, label: 'Trio — one big, two stacked' },
@@ -54,13 +54,15 @@ export const FACE_ANCHORS = {
 };
 
 // Panel rectangles for a layout, in fractions of the canvas, with a gutter
-// between them. Panels are numbered in reading order. The photos cover the
-// FULL height of the canvas: the title block overlaps the foot of the photos
-// on a dark scrim (the look the top covers use), it is never confined to a
-// separate strip.
-export function layoutPanels(layout, W, H) {
+// between them. Panels are numbered in reading order. The panels live in
+// the area ABOVE the production footer: `reserveBottom` is the footer's
+// height (0 when it is hidden), so no photo is ever hidden behind the
+// footer band. The title block overlaps the foot of the photos on a dark
+// scrim (the look the top covers use), it is never confined to a separate
+// strip.
+export function layoutPanels(layout, W, H, reserveBottom = 0) {
   const g = Math.max(6, Math.round(Math.min(W, H) * 0.012));
-  const x0 = g, y0 = g, x1 = W - g, y1 = H - g;
+  const x0 = g, y0 = g, x1 = W - g, y1 = H - reserveBottom - g;
   const w = x1 - x0, h = y1 - y0;
   const midX = x0 + Math.round(w * 0.56);
   const midY = y0 + Math.round(h * 0.62);
@@ -80,21 +82,27 @@ export function layoutPanels(layout, W, H) {
       ];
     }
     case 'keyart': {
-      const leftW = Math.round(w * 0.28);
-      const midW = Math.round(w * 0.3);
-      const stripH = Math.round(h * 0.16);
-      const topH = h - stripH - g;
-      const third = Math.round((topH - 2 * g) / 3);
-      const midX2 = x0 + leftW + g;
-      const rightX = midX2 + midW + g;
-      return [
-        { x: x0, y: y0, w: leftW, h: topH },
-        { x: midX2, y: y0, w: midW, h: third },
-        { x: midX2, y: y0 + third + g, w: midW, h: third },
-        { x: midX2, y: y0 + 2 * (third + g), w: midW, h: topH - 2 * (third + g) },
-        { x: rightX, y: y0, w: x1 - rightX, h: topH },
-        { x: x0, y: y0 + topH + g, w, h: stripH },
-      ];
+      // Six portraits, three over three: every cast member gets a full
+      // panel with its face visible, and every panel ends above the
+      // production footer. The old layout's bottom strip showed only the
+      // top of the sixth portrait's head once the footer covered its foot,
+      // and the middle panel of the stacked column sat entirely behind
+      // the centre title — its face and its label both invisible.
+      const cw = Math.round((w - 2 * g) / 3);
+      const rh = Math.round((h - g) / 2);
+      const rects = [];
+      for (let i = 0; i < 6; i++) {
+        const col = i % 3, row = Math.floor(i / 3);
+        const x = x0 + col * (cw + g);
+        const y = y0 + row * (rh + g);
+        rects.push({
+          x,
+          y,
+          w: col === 2 ? x1 - x : cw,
+          h: row === 1 ? y1 - y : rh,
+        });
+      }
+      return rects;
     }
     case 'duo':
       return [
@@ -778,12 +786,19 @@ export function drawFooter(ctx, W, H, state) {
   ctx.restore();
 }
 
-// A small dark pill with white caps text in the top-left corner of a panel
-// with a photo. Top-left on purpose: the giant title block covers the foot
-// of the photos, so a bottom label would collide with it. Collisions are
-// handled by pushing the pill down when it fits in the panel, sliding it
-// sideways away from a corner obstacle when it does not, and skipping it
-// only when neither works — a half-hidden label is worse than none.
+// A small dark pill with white caps text for a panel with a photo.
+// Top-left by default: the giant title block covers the foot of the
+// photos, so a bottom label would collide with it. When the top-left spot
+// is blocked, the pill tries, in order: below a corner obstacle (quote
+// strip, badge), slid sideways clear of it, below the title block, the
+// panel's bottom-left, the panel's bottom-right — every x combined with
+// every y, so a label squeezed between the quote strip and a corner badge
+// still finds the gap beside the badge and under the strip. A spot in the
+// panel's middle band (30–70% of its height) sits on the centred face, so
+// only top and foot spots are usable there. If no spot fits at the usual
+// size, the type shrinks (never below 11px) until one does: a small label
+// beats a missing one. A half-hidden label is worse than none, so nothing
+// is drawn when no spot fits at any size.
 function drawPanelLabels(ctx, rects, panels, opts) {
   const obstacles = [opts?.quoteZone, opts?.badgeRect].filter(Boolean);
   const title = opts?.titleZone || null;
@@ -793,38 +808,47 @@ function drawPanelLabels(ctx, rects, panels, opts) {
     if (!panel.photo) return;
     const label = (panel.caption || '').trim();
     if (!label) return;
-    const fs = Math.max(11, Math.min(26, Math.round(Math.min(rect.w, rect.h) * 0.06)));
+    const baseFs = Math.max(11, Math.min(26, Math.round(Math.min(rect.w, rect.h) * 0.06)));
+    const inset = Math.round(Math.min(rect.w, rect.h) * 0.03);
+    for (let fs = baseFs; fs >= 11; fs--) {
     ctx.save();
     ctx.font = `900 ${fs}px Anton, sans-serif`;
     const tw = ctx.measureText(label.toUpperCase()).width;
     const px = Math.round(fs * 0.55), py = Math.round(fs * 0.32);
-    const inset = Math.round(Math.min(rect.w, rect.h) * 0.03);
-    let x = rect.x + inset;
-    let y = rect.y + inset;
     const w = tw + px * 2, h = fs + py * 2;
-    const box = () => ({ x0: x, y0: y, x1: x + w, y1: y + h });
-    const fitsBelow = (zone) => zone.y1 + 8 + h <= rect.y + rect.h - 4;
-    // Clear of the title block's scrim zone: push below it when it fits
-    // (this is what lets bottom-row labels survive a centre title), skip
-    // when it does not (e.g. the key-art bottom strip under a bottom title).
-    if (title && overlaps(box(), title)) {
-      if (fitsBelow(title)) y = title.y1 + 8;
-      else { ctx.restore(); return; }
-    }
-    // Clear of each obstacle (quote strip, badge): push below when it fits,
-    // otherwise slide sideways away from it.
+    const inside = (b) => b.x0 >= rect.x + 4 && b.y0 >= rect.y + 4 && b.x1 <= rect.x + rect.w - 4 && b.y1 <= rect.y + rect.h - 4;
+    const clear = (b) => !(title && overlaps(b, title)) && !obstacles.some((ob) => overlaps(b, ob));
+    const box = (x, y) => ({ x0: x, y0: y, x1: x + w, y1: y + h });
+    // A spot in the panel's middle band (30–70% of its height) sits on
+    // the centred face; spots there are only usable at the panel's top
+    // or foot, never in the middle.
+    const clearOfFace = (b) => {
+      const mid = b.y0 + h / 2;
+      return mid < rect.y + rect.h * 0.3 || mid > rect.y + rect.h * 0.7;
+    };
+    const tx = rect.x + inset, ty = rect.y + inset;
+    // Candidate spots: the top-left corner, slid sideways clear of a
+    // corner obstacle, and below each obstacle and below the title block
+    // — every x combined with every y, so a label squeezed between the
+    // quote strip and a corner badge still finds the gap beside the badge
+    // and under the strip. Then the panel's bottom-left and bottom-right.
+    // A spot in the panel's middle band (30–70% of its height) sits on
+    // the centred face, so only top and foot spots are usable there.
+    const xs = [tx];
+    const ys = [ty];
     for (const ob of obstacles) {
-      if (!overlaps(box(), ob)) continue;
-      if (fitsBelow(ob)) y = ob.y1 + 8;
-      else if (ob.x0 <= 0) x = ob.x1 + 8;
-      else x = ob.x0 - 8 - w;
+      ys.push(ob.y1 + 8);
+      if (ob.x0 <= 0) xs.push(ob.x1 + 8);
+      else xs.push(ob.x0 - 8 - w);
     }
-    // A slide may have pushed the pill back into the title zone; skip if
-    // it is still colliding.
-    if (title && overlaps(box(), title)) {
-      ctx.restore();
-      return;
-    }
+    if (title) ys.push(title.y1 + 8);
+    const candidates = [];
+    for (const y of ys) for (const x of xs) candidates.push(box(x, y));
+    candidates.push(box(tx, rect.y + rect.h - h - inset));
+    candidates.push(box(rect.x + rect.w - w - inset, rect.y + rect.h - h - inset));
+    const spot = candidates.find((b) => inside(b) && clear(b) && clearOfFace(b));
+    if (!spot) { ctx.restore(); continue; }
+    const x = spot.x0, y = spot.y0;
     ctx.fillStyle = 'rgba(8,3,12,0.72)';
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, Math.round(h * 0.3));
@@ -834,6 +858,8 @@ function drawPanelLabels(ctx, rects, panels, opts) {
     ctx.textBaseline = 'middle';
     ctx.fillText(label.toUpperCase(), x + px, y + h / 2);
     ctx.restore();
+    return;
+    }
   });
 }
 
@@ -875,7 +901,10 @@ export function renderCover(canvas, state) {
   const W = size.w, H = size.h;
   ctx.fillStyle = '#0d0b12';
   ctx.fillRect(0, 0, W, H);
-  const rects = layoutPanels(state.layout, W, H);
+  // Panels end above the production footer, so no photo is ever hidden
+  // behind the footer band (the old key-art strip lost its whole face
+  // to it). The footer is drawn over the reserved band below.
+  const rects = layoutPanels(state.layout, W, H, footerHeight(H, state));
   const noir = state.grade === 'noir';
   const panels = (state.panels || []).map((p) => p || {});
   rects.forEach((rect, i) => {
