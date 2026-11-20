@@ -4,7 +4,7 @@
 [![rank](https://make.fun/badge/gta6-cover-art-01/sastrokucrit-creator/gta6-cover-art-01/rank.svg)](https://make.fun/bounty/gta6-cover-art-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 [![reward](https://make.fun/badge/gta6-cover-art-01/sastrokucrit-creator/gta6-cover-art-01/reward.svg)](https://make.fun/bounty/gta6-cover-art-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 
-Vice Cover Studio turns your own photo and a caption into a GTA 6-style poster cover. It is a fully offline static web app: choose one of seven collage layouts, load photos from your machine, crop and position each panel, write a big gradient title with a script subtitle, tagline and starburst badge, pick one of six colour grades (with an optional halftone finish), and export the result as a PNG ready to post.
+Vice Cover Studio turns your own photo and a caption into a GTA 6-style poster cover. It is a fully offline static web app: choose one of seven collage layouts, load photos from your machine, crop and position each panel, write a big gradient title with a script subtitle, tagline and VOL. 1 ticket, pick one of six colour grades (with an optional halftone finish), and export the result as a PNG ready to post.
 
 ## What it does
 
@@ -12,9 +12,11 @@ Vice Cover Studio turns your own photo and a caption into a GTA 6-style poster c
 - Your photos, cropped and positioned per panel, one photo or several
 - Face-aware crop: a cast portrait keeps its face centred in its panel until you drag it by hand
 - A title-block editor: title, script subtitle, tagline bar, badge text and badge on/off, fill, size and outline
-- A five-star review strip, a cast billing line, and a production footer with two credit lines, COMING SOON and a barcode
-- Colour grades: sunset (default), neon, noir, gold, vice and original, applied evenly across every panel
-- Five badge styles: starburst, WANTED poster, EST. seal, VOL. ticket and Collector's ribbon
+- A five-star review strip, a cast billing line, and a production footer with two credit lines, COMING SOON, a gold BEST CAST seal and a barcode
+- A gold BEST CAST seal stamped on every cover (toggleable), next to the VOL. 1 ticket
+- Colour grades: sunset (default), neon, noir, gold, vice and original — every panel gets the same warm tint, so the whole cast shares one golden-hour look
+- Five badge styles: VOL. ticket (default), starburst, WANTED poster, EST. seal and Collector's ribbon
+- Starring you: the footer credits read "Starring you and your crew · Shot on your own phone · No photo ever leaves your device"
 - Live preview while you edit
 - PNG export in all three post sizes: 1080×1080, 1080×1350 and 1920×1080
 - Eleven model-made sample photos are bundled — six cast portraits and five places — so you can try every layout and grade without uploading a photo first

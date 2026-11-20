@@ -4,6 +4,8 @@
 // does nothing clever: this is a development convenience, not a web server for the internet.
 // Screenshots come from the app's own ?shot= scenes (see shots.json for the exact queries):
 // serve on a port, then screenshot each scene and export it with the app's exportPNG.
+// Round 6: the shot scenes now carry the VOL. 1 ticket, the gold seal and the
+// starring-you footer by default; the server itself is unchanged.
 import { createReadStream, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';

@@ -2,7 +2,9 @@
 // six colour grades, face-aware portrait crops, bold Anton captioning,
 // a review strip, cast billing and a COMING SOON footer, three export
 // sizes (1080x1080, 1080x1350, 1920x1080). Built by the recorded agent
-// session for this entry.
+// session for this entry. Round 6: one unified sunset tint per panel, a
+// gold BEST CAST seal, a VOL. 1 ticket by default, and the starring-you
+// promise ("Shot on your own phone · No photo ever leaves your device").
 // A working gta6-cover-art-01 entry (Node 22, standard library only): the app is this directory's app/ folder, plain
 // static files a desktop browser loads offline (app/index.html and its ES modules, no library and no network
 // request), and the program hands it in. It copies app/ and screenshots/ from beside this file to /output and writes

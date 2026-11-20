@@ -20,20 +20,24 @@ export const state = {
   caption: 'Sunset Heist',
   subtitle: 'a sun-soaked getaway',
   tagline: 'Every street hides a fortune',
-  badgeText: 'Fresh',
-  badgeStyle: 'starburst',
+  badgeText: '1',
+  badgeStyle: 'vol',
   showBadge: true,
+  // A gold BEST CAST seal is stamped on the poster's foot by default, the
+  // way the top covers carry a gold seal beside their credits — next to
+  // the VOL. 1 ticket, it is the poster's award mark.
+  showSeal: true,
   showPanelLabels: true,
   halftone: true,
   captionPos: 'center',
   captionScale: 1,
   outline: 0.07,
   textStyle: 'sunset',
-  quote: 'A sunset that steals the whole show',
-  quoteSource: 'The Coast Review',
+  quote: 'A getaway that glows long after sunset',
+  quoteSource: 'The Golden Hour Gazette',
   showQuote: true,
   footer: 'A Vice Cover Studio picture · In association with Palm & Sunset',
-  footer2: 'Starring you and your crew · Directed by you · Written at the beach · Music by the neon',
+  footer2: 'Starring you and your crew · Shot on your own phone · No photo ever leaves your device',
   showFooter: true,
   // Face-aware crop is on by default: a bundled cast portrait keeps its
   // face centred in its panel until the user drags it by hand.
@@ -212,6 +216,10 @@ document.getElementById('panelCaption').addEventListener('input', (e) => {
 });
 document.getElementById('showBadge').addEventListener('change', (e) => {
   state.showBadge = e.target.checked;
+  redraw();
+});
+document.getElementById('showSeal').addEventListener('change', (e) => {
+  state.showSeal = e.target.checked;
   redraw();
 });
 document.getElementById('halftone').addEventListener('change', (e) => {
@@ -407,6 +415,7 @@ window.__vice = {
   setFooter: (text) => { state.footer = text; const el = document.getElementById('footer'); if (el) el.value = text; redraw(); },
   setFooter2: (text) => { state.footer2 = text; const el = document.getElementById('footer2'); if (el) el.value = text; redraw(); },
   setShowFooter: (on) => { state.showFooter = !!on; const el = document.getElementById('showFooter'); if (el) el.checked = !!on; redraw(); },
+  setShowSeal: (on) => { state.showSeal = !!on; const el = document.getElementById('showSeal'); if (el) el.checked = !!on; redraw(); },
   setCaptionPos: (pos) => { state.captionPos = pos; const el = document.getElementById('captionPos'); if (el) el.value = pos; redraw(); },
 };
 

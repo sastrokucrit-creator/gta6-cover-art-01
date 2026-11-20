@@ -43,6 +43,8 @@ export async function runShot(shot, query) {
   if (halftone !== null) vice.setHalftone(halftone !== '0');
   const showBadge = query.get('showBadge');
   if (showBadge !== null) { vice.state.showBadge = showBadge !== '0'; }
+  const showSeal = query.get('showSeal');
+  if (showSeal !== null) vice.setShowSeal(showSeal !== '0');
   const pos = query.get('captionPos');
   if (pos) { vice.setCaptionPos(pos); }
   const style = query.get('textStyle');

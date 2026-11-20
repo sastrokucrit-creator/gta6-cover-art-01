@@ -198,7 +198,7 @@ function gradeWash(ctx, W, H, grade) {
   let top, bottom;
   if (grade === 'sunset') {
     top = ['rgba(255,140,40,0.17)', 'rgba(255,80,30,0.08)'];
-    bottom = ['rgba(255,60,120,0.00)', 'rgba(255,30,110,0.44)'];
+    bottom = ['rgba(255,60,120,0.00)', 'rgba(255,30,110,0.34)'];
   } else if (grade === 'neon') {
     top = ['rgba(40,200,255,0.19)', 'rgba(140,60,255,0.11)'];
     bottom = ['rgba(255,0,160,0.00)', 'rgba(255,0,160,0.42)'];
@@ -207,7 +207,7 @@ function gradeWash(ctx, W, H, grade) {
     bottom = ['rgba(0,0,0,0.00)', 'rgba(0,0,0,0.34)'];
   } else if (grade === 'gold') {
     top = ['rgba(255,190,60,0.20)', 'rgba(255,140,40,0.08)'];
-    bottom = ['rgba(255,120,0,0.00)', 'rgba(190,70,0,0.42)'];
+    bottom = ['rgba(255,120,0,0.00)', 'rgba(190,70,0,0.32)'];
   } else if (grade === 'vice') {
     top = ['rgba(0,220,200,0.18)', 'rgba(0,120,180,0.10)'];
     bottom = ['rgba(255,0,150,0.00)', 'rgba(255,0,150,0.42)'];
@@ -222,6 +222,39 @@ function gradeWash(ctx, W, H, grade) {
   g2.addColorStop(1, bottom[1]);
   ctx.fillStyle = g2;
   ctx.fillRect(0, 0, W, H);
+}
+
+// A warm wash painted inside ONE panel, mapped to that panel's own rect:
+// every panel gets the identical tint, so panels that start from different
+// source photos (a pink portrait, a neutral one) end up sharing one
+// golden-hour temperature. The cover-wide wash alone cannot do this — it is
+// a vertical gradient, so the top row reads warm and the bottom row reads
+// magenta. The tint is deliberately light: it unifies, it does not repaint.
+function panelTint(ctx, rect, grade) {
+  if (grade === 'original' || grade === 'noir') return;
+  let top, bottom;
+  if (grade === 'sunset' || grade === 'gold') {
+    top = 'rgba(255,150,60,0.14)';
+    bottom = 'rgba(255,40,120,0.10)';
+  } else if (grade === 'neon') {
+    top = 'rgba(40,200,255,0.10)';
+    bottom = 'rgba(255,0,160,0.07)';
+  } else if (grade === 'vice') {
+    top = 'rgba(0,220,200,0.10)';
+    bottom = 'rgba(255,0,150,0.07)';
+  } else {
+    return;
+  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rect.x, rect.y, rect.w, rect.h);
+  ctx.clip();
+  const g = ctx.createLinearGradient(0, rect.y, 0, rect.y + rect.h);
+  g.addColorStop(0, top);
+  g.addColorStop(1, bottom);
+  ctx.fillStyle = g;
+  ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+  ctx.restore();
 }
 
 // Splits a caption into lines that fit maxWidth at the given font string.
@@ -610,6 +643,64 @@ export function drawBadge(ctx, W, H, state) {
   else drawStarburst(ctx, W, H, state);
 }
 
+// The gold seal's geometry: a circle stamped on the foot of the last
+// panel, above the production footer. Pure geometry, so the panel labels
+// can treat it as an obstacle before anything is drawn.
+function sealRectFor(W, H, state) {
+  if (state.showSeal === false) return null;
+  const fH = footerHeight(H, state);
+  const min = Math.min(W, H);
+  const r = Math.round(min * 0.052);
+  const m = Math.round(min * 0.018);
+  const cx = W - r - m;
+  const cy = H - fH - r - Math.round(m * 0.6);
+  return { x0: cx - r - 4, y0: cy - r - 4, x1: cx + r + 4, y1: cy + r + 4, cx, cy, r };
+}
+
+// A circular gold seal — BEST CAST — stamped on the poster like a film
+// poster's award seal. Gold ring with a serrated rim, dark inner disc,
+// a star and the words BEST CAST. Drawn after the title block and the
+// footer, so it reads as a sticker on top of the poster, never hidden
+// behind them.
+function drawGoldSeal(ctx, W, H, state) {
+  const geo = sealRectFor(W, H, state);
+  if (!geo) return;
+  const { cx, cy, r } = geo;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#e8b400';
+  ctx.fill();
+  ctx.lineWidth = Math.max(2, Math.round(r * 0.05));
+  ctx.strokeStyle = '#8a6d00';
+  ctx.stroke();
+  ctx.beginPath();
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * Math.PI * 2;
+    ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    ctx.lineTo(cx + Math.cos(a) * (r * 0.9), cy + Math.sin(a) * (r * 0.9));
+  }
+  ctx.strokeStyle = 'rgba(138,109,0,0.7)';
+  ctx.lineWidth = Math.max(1, Math.round(r * 0.03));
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.76, 0, Math.PI * 2);
+  ctx.fillStyle = '#14060f';
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, Math.round(r * 0.04));
+  ctx.strokeStyle = '#ffd23e';
+  ctx.stroke();
+  ctx.fillStyle = '#ffd23e';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${Math.round(r * 0.34)}px sans-serif`;
+  ctx.fillText('★', cx, cy - r * 0.38);
+  ctx.font = `900 ${Math.round(r * 0.24)}px Anton, sans-serif`;
+  ctx.fillText('BEST', cx, cy + r * 0.02);
+  ctx.fillText('CAST', cx, cy + r * 0.3);
+  ctx.restore();
+}
+
 // Default story label for each bundled sample photo: a character or a place
 // plus a time, the way the top covers caption every panel. Uploaded photos
 // fall back to their file name, upper-cased; the editor lets the user edit
@@ -800,7 +891,7 @@ export function drawFooter(ctx, W, H, state) {
 // beats a missing one. A half-hidden label is worse than none, so nothing
 // is drawn when no spot fits at any size.
 function drawPanelLabels(ctx, rects, panels, opts) {
-  const obstacles = [opts?.quoteZone, opts?.badgeRect].filter(Boolean);
+  const obstacles = [opts?.quoteZone, opts?.badgeRect, opts?.sealRect].filter(Boolean);
   const title = opts?.titleZone || null;
   const overlaps = (a, b) => a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
   rects.forEach((rect, i) => {
@@ -886,7 +977,7 @@ export function halftone(ctx, W, H) {
 }
 
 // Renders the whole cover. `state` carries layout, grade, size, caption,
-// subtitle, tagline, badgeText, badgeStyle, showBadge, halftone,
+// subtitle, tagline, badgeText, badgeStyle, showBadge, showSeal, halftone,
 // showPanelLabels, captionPos, captionScale, outline, textStyle, quote,
 // quoteSource, showQuote, footer, footer2, showFooter, faceAware, and
 // panels: an array of { photo, zoom, ox, oy, caption } where photo is an
@@ -910,12 +1001,16 @@ export function renderCover(canvas, state) {
   rects.forEach((rect, i) => {
     const panel = panels[i] || {};
     if (panel.photo) {
-      // A heavy, unified grade: saturate + contrast on the photo itself,
-      // on top of the wash painted later, so the panels feel like one poster.
+      // A heavy, unified grade: the sunset and gold grades warm every
+      // photo with the same sepia shift (so a pink neon portrait and a
+      // neutral one end up at the same golden-hour temperature), plus
+      // saturate + contrast on the photo itself, on top of the wash
+      // painted later, so the panels feel like one poster.
       if (noir) ctx.filter = 'grayscale(1) contrast(1.18) brightness(1.04)';
-      else if (state.grade === 'gold') ctx.filter = 'saturate(1.35) contrast(1.1) brightness(1.03)';
+      else if (state.grade === 'gold') ctx.filter = 'sepia(0.18) saturate(1.35) contrast(1.1) brightness(1.03)';
       else if (state.grade === 'vice') ctx.filter = 'saturate(1.3) contrast(1.08)';
-      else if (state.grade === 'sunset' || state.grade === 'neon') ctx.filter = 'saturate(1.28) contrast(1.07)';
+      else if (state.grade === 'sunset') ctx.filter = 'sepia(0.22) saturate(1.35) contrast(1.08)';
+      else if (state.grade === 'neon') ctx.filter = 'saturate(1.28) contrast(1.07)';
       // Face-aware crop: a portrait with a known face anchor, not yet
       // dragged by hand, is snapped so its face sits in the panel's
       // centre. A drag (any pan) hands the framing back to the user.
@@ -927,6 +1022,9 @@ export function renderCover(canvas, state) {
       }
       drawPhotoInto(ctx, panel.photo, rect, zoom, ox, oy);
       ctx.filter = 'none';
+      // One identical warm tint in every panel: the sunset grade that
+      // unifies the cast, whatever each source photo's white balance was.
+      panelTint(ctx, rect, state.grade || 'sunset');
     } else {
       const g = ctx.createLinearGradient(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
       g.addColorStop(0, '#3a2350');
@@ -956,9 +1054,11 @@ export function renderCover(canvas, state) {
     ? { x0: 0, y0: titleGeo.topY - titleGeo.pad, x1: W, y1: titleGeo.topY + titleGeo.blockH + titleGeo.pad }
     : { x0: 0, y0: titleGeo.topY - titleGeo.pad, x1: W, y1: H };
   if (state.showPanelLabels !== false) {
-    drawPanelLabels(ctx, rects, panels, { badgeRect: badgeRectFor(W, H, state), titleZone, quoteZone });
+    drawPanelLabels(ctx, rects, panels, { badgeRect: badgeRectFor(W, H, state), sealRect: sealRectFor(W, H, state), titleZone, quoteZone });
   }
   drawTitleBlock(ctx, W, H, state);
   drawFooter(ctx, W, H, state);
   if (state.showBadge) drawBadge(ctx, W, H, state);
+  // The gold seal goes on last, on top of everything, like a sticker.
+  drawGoldSeal(ctx, W, H, state);
 }

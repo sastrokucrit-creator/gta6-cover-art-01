@@ -12,6 +12,7 @@
     <header>
       <h1>VICE COVER STUDIO</h1>
       <p>Your photo, your words — a poster-style cover, ready to share.</p>
+      <p class="privacy">Shot on your own phone · No photo ever leaves your device.</p>
     </header>
 
     <fieldset>
@@ -60,18 +61,21 @@
       <div class="row">
         <label>Badge style
           <select id="badgeStyle">
-            <option value="starburst" selected>Starburst badge</option>
+            <option value="starburst">Starburst badge</option>
             <option value="wanted">WANTED poster</option>
             <option value="est">EST. seal</option>
-            <option value="vol">VOL. ticket</option>
+            <option value="vol" selected>VOL. ticket</option>
             <option value="ribbon">Collector's ribbon</option>
           </select>
         </label>
         <label>Badge text / Vol. no.
-          <input id="badgeText" type="text" maxlength="8" value="Fresh">
+          <input id="badgeText" type="text" maxlength="8" value="1">
         </label>
         <label class="check">Show badge
           <input id="showBadge" type="checkbox" checked>
+        </label>
+        <label class="check">Gold seal — BEST CAST
+          <input id="showSeal" type="checkbox" checked>
         </label>
         <label class="check">Halftone dots
           <input id="halftone" type="checkbox" checked>
@@ -106,10 +110,10 @@
     <fieldset>
       <legend>5 · Quote &amp; footer</legend>
       <label>Review quote
-        <input id="quote" type="text" maxlength="80" value="A sunset that steals the whole show">
+        <input id="quote" type="text" maxlength="80" value="A getaway that glows long after sunset">
       </label>
       <label>Quote source
-        <input id="quoteSource" type="text" maxlength="40" value="The Coast Review">
+        <input id="quoteSource" type="text" maxlength="40" value="The Golden Hour Gazette">
       </label>
       <label class="check">Show quote strip
         <input id="showQuote" type="checkbox" checked>
@@ -118,12 +122,12 @@
         <input id="footer" type="text" maxlength="100" value="A Vice Cover Studio picture · In association with Palm & Sunset">
       </label>
       <label>Production footer — line 2
-        <input id="footer2" type="text" maxlength="100" value="Starring you and your crew · Directed by you · Written at the beach · Music by the neon">
+        <input id="footer2" type="text" maxlength="100" value="Starring you and your crew · Shot on your own phone · No photo ever leaves your device">
       </label>
       <label class="check">Show footer &amp; barcode
         <input id="showFooter" type="checkbox" checked>
       </label>
-      <p class="hint">The quote strip opens the cover with five stars and a press line; the footer closes it with two lines of film credits, a big COMING SOON and a barcode. Both are drawn on the cover itself, so they appear in every export.</p>
+      <p class="hint">The quote strip opens the cover with five stars and a press line; the footer closes it with two lines of film credits, a big COMING SOON, a gold BEST CAST seal and a barcode. All of them are drawn on the cover itself, so they appear in every export.</p>
     </fieldset>
 
     <fieldset>
