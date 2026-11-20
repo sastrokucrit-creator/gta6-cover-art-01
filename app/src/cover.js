@@ -194,9 +194,11 @@ export function wrapCaption(ctx, text, maxWidth, font) {
 }
 
 // The production footer strip along the very bottom edge, when shown.
-// Kept small (5% of the height) so the title block still dominates.
+// Two lines of film credits when a second line is set (9.5% of the
+// height), one line otherwise (5%). The title block reserves this room.
 export function footerHeight(H, state) {
-  return state.showFooter === false ? 0 : Math.round(H * 0.05);
+  if (state.showFooter === false) return 0;
+  return (state.footer2 || '').trim() ? Math.round(H * 0.095) : Math.round(H * 0.05);
 }
 
 // The quote strip's height, when shown. Shared by the strip itself, the
@@ -233,13 +235,29 @@ export function measureTitleBlock(ctx, W, H, state) {
   const scriptSize = Math.round(size * 0.42);
   const tagSize = Math.round(size * 0.22);
   const pad = Math.round(H * 0.02);
-  const blockH = lines.length * lineH + (script ? Math.round(scriptSize * 1.5) : 0) + (tag ? Math.round(tagSize * 1.9) : 0);
+  // Cast billing: the roles of the panels' photos, joined as one line
+  // ("THE DRIVER · THE FIXER · ...") — a film-poster billing block that
+  // follows the user's own cast, so it always names the people actually
+  // on the cover. Derived from the panel captions, never copied text.
+  const billing = (() => {
+    const roles = [];
+    for (const p of (state.panels || [])) {
+      const cap = (p?.caption || '').trim();
+      if (!cap) continue;
+      const role = cap.split('·')[0].trim();
+      if (role && !roles.includes(role)) roles.push(role);
+    }
+    return roles.length >= 2 ? roles.join(' · ') : '';
+  })();
+  const billingSize = Math.round(tagSize * 0.55);
+  const billingH = billing ? Math.round(tagSize * 0.95) : 0;
+  const blockH = lines.length * lineH + (script ? Math.round(scriptSize * 1.5) : 0) + (tag ? Math.round(tagSize * 2.2) : 0) + billingH;
   const fH = footerHeight(H, state);
   const pos = state.captionPos === 'center' ? 'center' : state.captionPos === 'top' ? 'top' : 'bottom';
   const topY = pos === 'top' ? pad
     : pos === 'center' ? Math.round((H - fH - blockH) / 2)
     : H - pad - fH - blockH;
-  return { text, script, tag, size, font, lines, lineH, scriptSize, tagSize, pad, blockH, pos, topY, footerH: fH };
+  return { text, script, tag, size, font, lines, lineH, scriptSize, tagSize, pad, blockH, pos, topY, footerH: fH, billing, billingSize, billingH };
 }
 
 // The title block: the dominant element of the cover, and it must READ as
@@ -251,7 +269,7 @@ export function measureTitleBlock(ctx, W, H, state) {
 // it does, so the title stays huge in every export size.
 export function drawTitleBlock(ctx, W, H, state) {
   const g = measureTitleBlock(ctx, W, H, state);
-  const { text, script, tag, size, font, lines, lineH, scriptSize, tagSize, pad, blockH, pos, topY } = g;
+  const { text, script, tag, size, font, lines, lineH, scriptSize, tagSize, pad, blockH, pos, topY, billing, billingSize, billingH } = g;
   if (!text && !script && !tag) return;
   // Dark scrim behind the block so the giant letters read over any photo.
   const scrim = ctx.createLinearGradient(0, topY - pad, 0, topY + blockH + pad);
@@ -287,6 +305,18 @@ export function drawTitleBlock(ctx, W, H, state) {
     fill.addColorStop(0, '#ffffff');
     fill.addColorStop(0.5, '#aef3ff');
     fill.addColorStop(1, '#ff4fd8');
+  } else if (state.textStyle === 'stripes') {
+    // Sunset stripes: hard colour stops make horizontal bands across the
+    // letters, the striped sunset fill the top covers use.
+    fill = ctx.createLinearGradient(0, topY, 0, topY + lines.length * lineH);
+    fill.addColorStop(0, '#ffe9a8');
+    fill.addColorStop(0.22, '#ffe9a8');
+    fill.addColorStop(0.22, '#ff9a3c');
+    fill.addColorStop(0.48, '#ff9a3c');
+    fill.addColorStop(0.48, '#ff2e88');
+    fill.addColorStop(0.74, '#ff2e88');
+    fill.addColorStop(0.74, '#ffd23e');
+    fill.addColorStop(1, '#ffd23e');
   } else {
     fill = '#ffffff';
   }
@@ -319,12 +349,48 @@ export function drawTitleBlock(ctx, W, H, state) {
     ctx.shadowBlur = 0;
     cursor += Math.round(scriptSize * 1.5);
   }
-  // Tagline: yellow caps, letterspaced, on its own line.
+  // Tagline: a full-width bar under the title, the way the top covers run
+  // a tagline strip across the whole poster — dark band, gold rules, the
+  // yellow caps line centred in it. The font shrinks until it fits.
   if (tag) {
-    ctx.font = `700 ${tagSize}px 'Arial Narrow', sans-serif`;
+    const barH = Math.round(tagSize * 2.2);
+    const barY = cursor - Math.round(tagSize * 0.35);
+    ctx.fillStyle = 'rgba(5,2,10,0.62)';
+    ctx.fillRect(0, barY, W, barH);
+    ctx.fillStyle = 'rgba(255,210,62,0.65)';
+    const rule = Math.max(2, Math.round(H * 0.002));
+    ctx.fillRect(0, barY, W, rule);
+    ctx.fillRect(0, barY + barH - rule, W, rule);
     const spaced = tag.toUpperCase().split('').join('\u2009');
+    let tfs = tagSize;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    while (tfs > 10) {
+      ctx.font = `700 ${tfs}px 'Arial Narrow', sans-serif`;
+      if (ctx.measureText(spaced).width <= W * 0.92) break;
+      tfs = Math.round(tfs * 0.92);
+    }
+    ctx.font = `700 ${tfs}px 'Arial Narrow', sans-serif`;
     ctx.fillStyle = '#ffd23e';
-    ctx.fillText(spaced, W / 2, cursor + Math.round(tagSize * 0.85));
+    ctx.fillText(spaced, W / 2, barY + barH / 2);
+  }
+  // Cast billing line under the tagline bar: the roles on this cover, in
+  // small letterspaced caps. Sits inside the title block's scrim, below
+  // the tagline slot (or below the script when there is no tagline).
+  if (billing) {
+    const spaced = billing.toUpperCase().split('').join('\u2009');
+    let bfs = billingSize;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    while (bfs > 9) {
+      ctx.font = `700 ${bfs}px 'Arial Narrow', sans-serif`;
+      if (ctx.measureText(spaced).width <= W * 0.92) break;
+      bfs = Math.round(bfs * 0.92);
+    }
+    ctx.font = `700 ${bfs}px 'Arial Narrow', sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    const billingY = cursor + (tag ? Math.round(tagSize * 2.2) : 0) + Math.round(billingH / 2);
+    ctx.fillText(spaced, W / 2, billingY);
   }
 }
 
@@ -507,6 +573,9 @@ export const PANEL_LABELS = {
   driver: 'THE DRIVER · 9:15 PM',
   rider: 'THE RIDER · 8:03 PM',
   woman: 'THE INSIDER · 7:26 PM',
+  fixer: 'THE FIXER · 4:20 PM',
+  mechanic: 'THE MECHANIC · 3:15 PM',
+  captain: 'THE CAPTAIN · 6:48 PM',
 };
 
 export function defaultPanelLabel(name) {
@@ -598,10 +667,11 @@ export function drawQuoteStrip(ctx, W, H, state) {
   return { x0: 0, y0: 0, x1: W, y1: qh };
 }
 
-// A production footer along the very bottom edge: an editable credit line
+// A production footer along the very bottom edge: two lines of film
+// credits when a second line is set, a big gold COMING SOON at the left,
 // and a procedural barcode at the right (seeded bars, so every export is
-// byte-identical for the same state). The strip sits below the title block,
-// which measureTitleBlock already reserves room for.
+// byte-identical for the same state). The strip sits below the title
+// block, which measureTitleBlock already reserves room for.
 export function drawFooter(ctx, W, H, state) {
   const fH = footerHeight(H, state);
   if (!fH) return;
@@ -630,22 +700,39 @@ export function drawFooter(ctx, W, H, state) {
     if (rnd() > 0.25) ctx.fillRect(x, by + Math.round(bh * 0.06), wBar, Math.round(bh * 0.88));
     x += wBar + gap;
   }
-  // Credit line, centred in the space left of the barcode.
-  const text = (state.footer || '').trim().toUpperCase();
-  if (text) {
-    const maxW = bx - m - m;
-    let fs = Math.round(fH * 0.34);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+  // COMING SOON in big gold Anton at the left, vertically centred.
+  const twoLine = !!(state.footer2 || '').trim();
+  const soonSize = Math.round(fH * (twoLine ? 0.42 : 0.5));
+  ctx.font = `900 ${soonSize}px Anton, sans-serif`;
+  const soonW = ctx.measureText('COMING SOON').width;
+  const soonX = m;
+  ctx.fillStyle = '#ffd23e';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('COMING SOON', soonX, y0 + fH / 2 + Math.round(soonSize * 0.04));
+  // Credit lines, centred in the space between COMING SOON and the barcode.
+  const lines = [state.footer, state.footer2].map((s) => (s || '').trim().toUpperCase()).filter(Boolean);
+  const zoneX0 = soonX + soonW + m * 2;
+  const zoneX1 = bx - m;
+  const zoneW = zoneX1 - zoneX0;
+  const zoneCx = zoneX0 + zoneW / 2;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  lines.forEach((line, li) => {
+    const spaced = line.split('').join('\u2009');
+    let fs = Math.round(fH * (lines.length > 1 ? 0.2 : 0.34));
     while (fs > 8) {
       ctx.font = `700 ${fs}px 'Arial Narrow', sans-serif`;
-      if (ctx.measureText(text.split('').join('\u2009')).width <= maxW) break;
+      if (ctx.measureText(spaced).width <= zoneW) break;
       fs = Math.round(fs * 0.92);
     }
     ctx.font = `700 ${fs}px 'Arial Narrow', sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText(text.split('').join('\u2009'), bx / 2, y0 + fH / 2 + Math.round(fs * 0.06));
-  }
+    const ly = lines.length > 1
+      ? y0 + fH * (li === 0 ? 0.3 : 0.72)
+      : y0 + fH / 2 + Math.round(fs * 0.06);
+    ctx.fillText(spaced, zoneCx, ly);
+  });
   ctx.restore();
 }
 
@@ -733,7 +820,7 @@ export function halftone(ctx, W, H) {
 // Renders the whole cover. `state` carries layout, grade, size, caption,
 // subtitle, tagline, badgeText, badgeStyle, showBadge, halftone,
 // showPanelLabels, captionPos, captionScale, outline, textStyle, quote,
-// quoteSource, showQuote, footer, showFooter, and
+// quoteSource, showQuote, footer, footer2, showFooter, and
 // panels: an array of { photo, zoom, ox, oy, caption } where photo is an
 // image element or null.
 // A panel with no photo gets a deep purple placeholder with its number.

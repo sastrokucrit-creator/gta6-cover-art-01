@@ -55,6 +55,8 @@ export async function runShot(shot, query) {
   if (showQuote !== null) vice.setShowQuote(showQuote !== '0');
   const footer = query.get('footer');
   if (footer !== null) vice.setFooter(footer);
+  const footer2 = query.get('footer2');
+  if (footer2 !== null) vice.setFooter2(footer2);
   const showFooter = query.get('showFooter');
   if (showFooter !== null) vice.setShowFooter(showFooter !== '0');
   const photos = query.get('photo');

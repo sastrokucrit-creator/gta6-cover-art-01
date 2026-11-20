@@ -14,12 +14,12 @@ const panelLabel = document.getElementById('panelLabel');
 // The working state. A panel holds { photo, zoom, ox, oy } where photo is an
 // index into state.tray (or null for an empty panel).
 export const state = {
-  layout: 'showcase',
+  layout: 'keyart',
   grade: 'sunset',
   size: 'wide',
   caption: 'Sunset Heist',
   subtitle: 'a sun-soaked getaway',
-  tagline: 'Every street tells a story',
+  tagline: 'Every street hides a fortune',
   badgeText: 'Fresh',
   badgeStyle: 'starburst',
   showBadge: true,
@@ -32,7 +32,8 @@ export const state = {
   quote: 'A sunset that steals the whole show',
   quoteSource: 'The Coast Review',
   showQuote: true,
-  footer: 'A Vice Cover Studio production · Starring you · Made with your own photos',
+  footer: 'A Vice Cover Studio picture · In association with Palm & Sunset',
+  footer2: 'Starring you and your crew · Directed by you · Written at the beach · Music by the neon',
   showFooter: true,
   tray: [],
   panels: [],
@@ -123,7 +124,8 @@ function refreshTray() {
 export async function loadSamples() {
   // Portraits first: the default cover is led by people, the way the top
   // covers are — the hero panel takes the first photo in the tray.
-  const names = ['driver', 'rider', 'woman', 'sunset', 'neon', 'pier', 'boulevard', 'lifeguard'];
+  // Six cast portraits, then the places.
+  const names = ['driver', 'rider', 'woman', 'fixer', 'mechanic', 'captain', 'sunset', 'neon', 'pier', 'boulevard', 'lifeguard'];
   for (const name of names) {
     if (state.tray.some((t) => t.name === name)) continue;
     try {
@@ -217,9 +219,11 @@ document.getElementById('textStyle').addEventListener('change', (e) => {
 const quoteInput = document.getElementById('quote');
 const quoteSourceInput = document.getElementById('quoteSource');
 const footerInput = document.getElementById('footer');
+const footer2Input = document.getElementById('footer2');
 quoteInput.addEventListener('input', () => { state.quote = quoteInput.value; redraw(); });
 quoteSourceInput.addEventListener('input', () => { state.quoteSource = quoteSourceInput.value; redraw(); });
 footerInput.addEventListener('input', () => { state.footer = footerInput.value; redraw(); });
+footer2Input.addEventListener('input', () => { state.footer2 = footer2Input.value; redraw(); });
 document.getElementById('showQuote').addEventListener('change', (e) => {
   state.showQuote = e.target.checked;
   redraw();
@@ -389,6 +393,7 @@ window.__vice = {
   setQuoteSource: (text) => { state.quoteSource = text; const el = document.getElementById('quoteSource'); if (el) el.value = text; redraw(); },
   setShowQuote: (on) => { state.showQuote = !!on; const el = document.getElementById('showQuote'); if (el) el.checked = !!on; redraw(); },
   setFooter: (text) => { state.footer = text; const el = document.getElementById('footer'); if (el) el.value = text; redraw(); },
+  setFooter2: (text) => { state.footer2 = text; const el = document.getElementById('footer2'); if (el) el.value = text; redraw(); },
   setShowFooter: (on) => { state.showFooter = !!on; const el = document.getElementById('showFooter'); if (el) el.checked = !!on; redraw(); },
   setCaptionPos: (pos) => { state.captionPos = pos; const el = document.getElementById('captionPos'); if (el) el.value = pos; redraw(); },
 };
