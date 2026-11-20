@@ -3,8 +3,8 @@
 // Query params: layout, grade, size, caption, subtitle, tagline, badge,
 // badgeStyle, halftone, photo (a comma list of sample names, one per panel,
 // the last one repeating), captions (per-panel labels, "|" separated),
-// captionPos (bottom/center/top), quote, quoteSource, showQuote,
-// footer, showFooter.
+// captionPos (bottom/center/top), textStyle, faceAware (0/1),
+// quote, quoteSource, showQuote, footer, footer2, showFooter.
 // window.__shotReady is set once the scene has painted.
 
 import { defaultPanelLabel } from './cover.js';
@@ -47,6 +47,8 @@ export async function runShot(shot, query) {
   if (pos) { vice.setCaptionPos(pos); }
   const style = query.get('textStyle');
   if (style) { vice.state.textStyle = style; }
+  const faceAware = query.get('faceAware');
+  if (faceAware !== null) vice.setFaceAware(faceAware !== '0');
   const quote = query.get('quote');
   if (quote !== null) vice.setQuote(quote);
   const quoteSource = query.get('quoteSource');

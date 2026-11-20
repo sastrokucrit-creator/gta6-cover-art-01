@@ -3,7 +3,7 @@
 // controls, and PNG export in the three post sizes. A `?shot=` query sets up
 // a fixed scene for a screenshot instead (./shots.js).
 
-import { SIZES, LAYOUTS, GRADES, BADGE_STYLES, layoutPanels, renderCover, defaultPanelLabel } from './cover.js';
+import { SIZES, LAYOUTS, GRADES, BADGE_STYLES, FACE_ANCHORS, layoutPanels, renderCover, defaultPanelLabel } from './cover.js';
 import { runShot } from './shots.js';
 
 const canvas = document.getElementById('cover');
@@ -35,6 +35,9 @@ export const state = {
   footer: 'A Vice Cover Studio picture · In association with Palm & Sunset',
   footer2: 'Starring you and your crew · Directed by you · Written at the beach · Music by the neon',
   showFooter: true,
+  // Face-aware crop is on by default: a bundled cast portrait keeps its
+  // face centred in its panel until the user drags it by hand.
+  faceAware: true,
   tray: [],
   panels: [],
   selectedPanel: 0,
@@ -130,6 +133,9 @@ export async function loadSamples() {
     if (state.tray.some((t) => t.name === name)) continue;
     try {
       const img = await loadImage(`samples/${name}.jpg`);
+      // The face anchor rides on the image itself, so the render engine
+      // can centre it without the panels having to know any names.
+      img._face = FACE_ANCHORS[name] || null;
       state.tray.push({ img, name, url: `samples/${name}.jpg` });
     } catch {
       // A missing sample is not fatal; the tray just holds fewer photos.
@@ -191,6 +197,10 @@ document.getElementById('badgeStyle').addEventListener('change', (e) => {
 });
 document.getElementById('showPanelLabels').addEventListener('change', (e) => {
   state.showPanelLabels = e.target.checked;
+  redraw();
+});
+document.getElementById('faceAware').addEventListener('change', (e) => {
+  state.faceAware = e.target.checked;
   redraw();
 });
 document.getElementById('panelCaption').addEventListener('input', (e) => {
@@ -388,6 +398,7 @@ window.__vice = {
     if (panel) { panel.caption = text; redraw(); }
   },
   setShowPanelLabels: (on) => { state.showPanelLabels = !!on; redraw(); },
+  setFaceAware: (on) => { state.faceAware = !!on; const el = document.getElementById('faceAware'); if (el) el.checked = !!on; redraw(); },
   setHalftone: (on) => { state.halftone = !!on; redraw(); },
   setQuote: (text) => { state.quote = text; const el = document.getElementById('quote'); if (el) el.value = text; redraw(); },
   setQuoteSource: (text) => { state.quoteSource = text; const el = document.getElementById('quoteSource'); if (el) el.value = text; redraw(); },

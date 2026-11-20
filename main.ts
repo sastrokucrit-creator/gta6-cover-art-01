@@ -1,6 +1,8 @@
-// Vice Cover Studio: a multi-panel GTA-style cover maker — five layouts,
-// four colour grades, bold Anton captioning, three export sizes (1080x1080,
-// 1080x1350, 1920x1080). Built by the recorded agent session for this entry.
+// Vice Cover Studio: a multi-panel GTA-style cover maker — seven layouts,
+// six colour grades, face-aware portrait crops, bold Anton captioning,
+// a review strip, cast billing and a COMING SOON footer, three export
+// sizes (1080x1080, 1080x1350, 1920x1080). Built by the recorded agent
+// session for this entry.
 // A working gta6-cover-art-01 entry (Node 22, standard library only): the app is this directory's app/ folder, plain
 // static files a desktop browser loads offline (app/index.html and its ES modules, no library and no network
 // request), and the program hands it in. It copies app/ and screenshots/ from beside this file to /output and writes

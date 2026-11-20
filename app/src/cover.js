@@ -34,6 +34,23 @@ export const GRADES = {
   sunset: { label: 'Sunset — warm dusk grade' },
   neon: { label: 'Neon — magenta and cyan night' },
   noir: { label: 'Noir — black and white, hard contrast' },
+  gold: { label: 'Gold — golden-hour glow' },
+  vice: { label: 'Vice — teal and magenta Miami split' },
+};
+
+// Where each bundled cast portrait keeps its face, as fractions of the
+// photo (read off the portraits themselves, one by one). A panel that
+// shows one of these photos with face-aware crop on centres that point
+// instead of the photo's middle, so a tall hero or a short bottom strip
+// never crops the face out — the fault the round-4 covers showed in the
+// key-art strip, which kept only a beard or a pair of sunglasses.
+export const FACE_ANCHORS = {
+  driver: { x: 0.46, y: 0.38 },
+  rider: { x: 0.48, y: 0.46 },
+  woman: { x: 0.48, y: 0.4 },
+  fixer: { x: 0.46, y: 0.38 },
+  mechanic: { x: 0.45, y: 0.36 },
+  captain: { x: 0.45, y: 0.44 },
 };
 
 // Panel rectangles for a layout, in fractions of the canvas, with a gutter
@@ -134,6 +151,25 @@ export function drawPhotoInto(ctx, img, rect, zoom, ox, oy) {
   return { maxOx, maxOy };
 }
 
+// The pan that centres a face anchor in its panel, at a zoom with room to
+// move: the anchor's drawn position is cx - pw/2 + anchor.x * pw, so
+// centring it needs ox = pw * (0.5 - anchor.x), clamped to what the zoom
+// allows. A zoom below 1.45 leaves no room to shift in a tight panel, so
+// the face-aware zoom never drops below it. Returns the zoom and pan to
+// draw with; the caller keeps the panel's own pan once the user drags,
+// so a drag always wins over the snap.
+export function faceAwareOffset(img, rect, zoom, anchor) {
+  const z = Math.max(1.45, zoom || 1);
+  const base = Math.max(rect.w / img.naturalWidth, rect.h / img.naturalHeight);
+  const pw = img.naturalWidth * base * z;
+  const ph = img.naturalHeight * base * z;
+  const maxOx = Math.max(0, (pw - rect.w) / 2);
+  const maxOy = Math.max(0, (ph - rect.h) / 2);
+  const ox = Math.max(-maxOx, Math.min(maxOx, pw * (0.5 - anchor.x)));
+  const oy = Math.max(-maxOy, Math.min(maxOy, ph * (0.5 - anchor.y)));
+  return { zoom: z, ox, oy };
+}
+
 // A soft dark vignette over the whole cover, so the caption reads anywhere.
 function vignette(ctx, W, H) {
   const r = Math.hypot(W, H) / 2;
@@ -161,6 +197,12 @@ function gradeWash(ctx, W, H, grade) {
   } else if (grade === 'noir') {
     top = ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.00)'];
     bottom = ['rgba(0,0,0,0.00)', 'rgba(0,0,0,0.34)'];
+  } else if (grade === 'gold') {
+    top = ['rgba(255,190,60,0.20)', 'rgba(255,140,40,0.08)'];
+    bottom = ['rgba(255,120,0,0.00)', 'rgba(190,70,0,0.42)'];
+  } else if (grade === 'vice') {
+    top = ['rgba(0,220,200,0.18)', 'rgba(0,120,180,0.10)'];
+    bottom = ['rgba(255,0,150,0.00)', 'rgba(255,0,150,0.42)'];
   }
   const g1 = ctx.createLinearGradient(0, 0, 0, H * 0.55);
   g1.addColorStop(0, top[0]);
@@ -820,9 +862,10 @@ export function halftone(ctx, W, H) {
 // Renders the whole cover. `state` carries layout, grade, size, caption,
 // subtitle, tagline, badgeText, badgeStyle, showBadge, halftone,
 // showPanelLabels, captionPos, captionScale, outline, textStyle, quote,
-// quoteSource, showQuote, footer, footer2, showFooter, and
+// quoteSource, showQuote, footer, footer2, showFooter, faceAware, and
 // panels: an array of { photo, zoom, ox, oy, caption } where photo is an
-// image element or null.
+// image element or null. A photo element may carry `_face`, its face
+// anchor from FACE_ANCHORS, which face-aware crop centres in its panel.
 // A panel with no photo gets a deep purple placeholder with its number.
 export function renderCover(canvas, state) {
   const size = SIZES[state.size] || SIZES.square;
@@ -841,8 +884,19 @@ export function renderCover(canvas, state) {
       // A heavy, unified grade: saturate + contrast on the photo itself,
       // on top of the wash painted later, so the panels feel like one poster.
       if (noir) ctx.filter = 'grayscale(1) contrast(1.18) brightness(1.04)';
+      else if (state.grade === 'gold') ctx.filter = 'saturate(1.35) contrast(1.1) brightness(1.03)';
+      else if (state.grade === 'vice') ctx.filter = 'saturate(1.3) contrast(1.08)';
       else if (state.grade === 'sunset' || state.grade === 'neon') ctx.filter = 'saturate(1.28) contrast(1.07)';
-      drawPhotoInto(ctx, panel.photo, rect, panel.zoom, panel.ox, panel.oy);
+      // Face-aware crop: a portrait with a known face anchor, not yet
+      // dragged by hand, is snapped so its face sits in the panel's
+      // centre. A drag (any pan) hands the framing back to the user.
+      let zoom = panel.zoom, ox = panel.ox, oy = panel.oy;
+      const face = (state.faceAware !== false && panel.photo) ? panel.photo._face : null;
+      if (face && (panel.ox === 0 && panel.oy === 0)) {
+        const snap = faceAwareOffset(panel.photo, rect, zoom, face);
+        zoom = snap.zoom; ox = snap.ox; oy = snap.oy;
+      }
+      drawPhotoInto(ctx, panel.photo, rect, zoom, ox, oy);
       ctx.filter = 'none';
     } else {
       const g = ctx.createLinearGradient(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);

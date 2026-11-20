@@ -24,12 +24,15 @@
         <button id="fillAll" type="button">Fill every panel with this photo</button>
         <button id="samples" type="button">Load sample photos</button>
       </div>
-      <p class="hint">Click a photo to put it in the selected panel. Click a panel in the preview to select it. Drag a panel to move its photo, scroll to zoom.</p>
+      <p class="hint">Click a photo to put it in the selected panel. Click a panel in the preview to select it. Drag a panel to move its photo, scroll to zoom. Face-aware crop keeps a cast portrait's face centred until you drag it.</p>
       <label>Caption for the selected panel
         <input id="panelCaption" type="text" maxlength="40" value="" placeholder="e.g. OCEAN DRIVE · 5:42 PM">
       </label>
       <label class="check">Show panel captions
         <input id="showPanelLabels" type="checkbox" checked>
+      </label>
+      <label class="check">Face-aware crop — keep faces centred
+        <input id="faceAware" type="checkbox" checked>
       </label>
     </fieldset>
 
@@ -52,7 +55,7 @@
         <input id="subtitle" type="text" maxlength="60" value="a sun-soaked getaway">
       </label>
       <label>Tagline
-        <input id="tagline" type="text" maxlength="80" value="Every street tells a story">
+        <input id="tagline" type="text" maxlength="80" value="Every street hides a fortune">
       </label>
       <div class="row">
         <label>Badge style
