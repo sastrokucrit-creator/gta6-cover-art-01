@@ -78,6 +78,7 @@
         <label>Position
           <select id="captionPos">
             <option value="bottom" selected>Bottom</option>
+            <option value="center">Centre</option>
             <option value="top">Top</option>
           </select>
         </label>
@@ -99,7 +100,27 @@
     </fieldset>
 
     <fieldset>
-      <legend>5 · Size &amp; export</legend>
+      <legend>5 · Quote &amp; footer</legend>
+      <label>Review quote
+        <input id="quote" type="text" maxlength="80" value="A sunset that steals the whole show">
+      </label>
+      <label>Quote source
+        <input id="quoteSource" type="text" maxlength="40" value="The Coast Review">
+      </label>
+      <label class="check">Show quote strip
+        <input id="showQuote" type="checkbox" checked>
+      </label>
+      <label>Production footer
+        <input id="footer" type="text" maxlength="100" value="A Vice Cover Studio production · Starring you · Made with your own photos">
+      </label>
+      <label class="check">Show footer &amp; barcode
+        <input id="showFooter" type="checkbox" checked>
+      </label>
+      <p class="hint">The quote strip opens the cover with five stars and a press line; the footer closes it with a production credit and a barcode. Both are drawn on the cover itself, so they appear in every export.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>6 · Size &amp; export</legend>
       <div id="sizes" class="chips" role="group" aria-label="Export size"></div>
       <button id="export" type="button" class="export">Export PNG</button>
       <p id="status" role="status"></p>
