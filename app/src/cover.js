@@ -193,6 +193,20 @@ export function wrapCaption(ctx, text, maxWidth, font) {
   return lines;
 }
 
+// The production footer strip along the very bottom edge, when shown.
+// Kept small (5% of the height) so the title block still dominates.
+export function footerHeight(H, state) {
+  return state.showFooter === false ? 0 : Math.round(H * 0.05);
+}
+
+// The quote strip's height, when shown. Shared by the strip itself, the
+// badges (which slide below it) and the label-collision zones.
+export function quoteHeight(H, state) {
+  return (state.showQuote === false || !(state.quote || '').trim())
+    ? 0
+    : Math.round(H * 0.065);
+}
+
 // Measures the title block (sizing + wrapping + position) without drawing
 // it, so the panel labels can be placed around it. Returns the geometry the
 // draw step needs.
@@ -220,9 +234,12 @@ export function measureTitleBlock(ctx, W, H, state) {
   const tagSize = Math.round(size * 0.22);
   const pad = Math.round(H * 0.02);
   const blockH = lines.length * lineH + (script ? Math.round(scriptSize * 1.5) : 0) + (tag ? Math.round(tagSize * 1.9) : 0);
-  const pos = state.captionPos === 'top' ? 'top' : 'bottom';
-  const topY = pos === 'top' ? pad : H - pad - blockH;
-  return { text, script, tag, size, font, lines, lineH, scriptSize, tagSize, pad, blockH, pos, topY };
+  const fH = footerHeight(H, state);
+  const pos = state.captionPos === 'center' ? 'center' : state.captionPos === 'top' ? 'top' : 'bottom';
+  const topY = pos === 'top' ? pad
+    : pos === 'center' ? Math.round((H - fH - blockH) / 2)
+    : H - pad - fH - blockH;
+  return { text, script, tag, size, font, lines, lineH, scriptSize, tagSize, pad, blockH, pos, topY, footerH: fH };
 }
 
 // The title block: the dominant element of the cover, and it must READ as
@@ -240,6 +257,13 @@ export function drawTitleBlock(ctx, W, H, state) {
   const scrim = ctx.createLinearGradient(0, topY - pad, 0, topY + blockH + pad);
   if (pos === 'top') {
     scrim.addColorStop(0, 'rgba(5,2,10,0.78)');
+    scrim.addColorStop(1, 'rgba(5,2,10,0)');
+  } else if (pos === 'center') {
+    // Centre: dark through the middle, fading out on both sides, so the
+    // title reads as one band across the poster's heart.
+    scrim.addColorStop(0, 'rgba(5,2,10,0)');
+    scrim.addColorStop(0.22, 'rgba(5,2,10,0.82)');
+    scrim.addColorStop(0.78, 'rgba(5,2,10,0.82)');
     scrim.addColorStop(1, 'rgba(5,2,10,0)');
   } else {
     scrim.addColorStop(0, 'rgba(5,2,10,0)');
@@ -309,13 +333,14 @@ export function drawTitleBlock(ctx, W, H, state) {
 // can hold a portrait's face (the hero panel), while the top-left sits over
 // sky or street in the usual shots. The tilt is mirrored from the old
 // top-right placement so the starburst still leans into the cover.
-// Pure canvas path, no image.
-function drawStarburst(ctx, W, H, text) {
-  const label = (text || '').trim().toUpperCase();
+// Pure canvas path, no image. It sits below the quote strip when the strip
+// is shown, so it never covers the review line.
+function drawStarburst(ctx, W, H, state) {
+  const label = (state.badgeText || '').trim().toUpperCase();
   if (!label) return;
   const r = Math.round(Math.min(W, H) * 0.085);
   const cx = r + Math.round(W * 0.02);
-  const cy = r + Math.round(H * 0.025);
+  const cy = r + Math.round(H * 0.025) + quoteHeight(H, state);
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(0.14);
@@ -348,12 +373,13 @@ function drawStarburst(ctx, W, H, text) {
 
 // A WANTED poster box in the top-right corner: cream paper, black border,
 // "WANTED" in big Anton and five red stars beneath. Small enough to sit over
-// sky or street, never over the title block.
-function drawWanted(ctx, W, H) {
+// sky or street, never over the title block. It sits below the quote strip
+// when the strip is shown.
+function drawWanted(ctx, W, H, state) {
   const m = Math.round(Math.min(W, H) * 0.02);
   const bw = Math.round(Math.min(W, H) * 0.19);
   const bh = Math.round(bw * 0.58);
-  const x = W - bw - m, y = m;
+  const x = W - bw - m, y = m + quoteHeight(H, state);
   ctx.save();
   ctx.fillStyle = '#f5eeda';
   ctx.strokeStyle = '#14060f';
@@ -375,11 +401,11 @@ function drawWanted(ctx, W, H) {
 }
 
 // A gold EST. seal in the top-left corner: a gold ring with a dark centre
-// reading EST. / 2026.
-function drawEstSeal(ctx, W, H) {
+// reading EST. / 2026. It sits below the quote strip when the strip is shown.
+function drawEstSeal(ctx, W, H, state) {
   const r = Math.round(Math.min(W, H) * 0.075);
   const cx = r + Math.round(W * 0.02);
-  const cy = r + Math.round(H * 0.025);
+  const cy = r + Math.round(H * 0.025) + quoteHeight(H, state);
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -404,12 +430,13 @@ function drawEstSeal(ctx, W, H) {
 
 // A black VOL. ticket in the top-right corner: gold text on near-black,
 // the volume number taken from the badge text field (default "06").
-function drawVolTicket(ctx, W, H, text) {
+// It sits below the quote strip when the strip is shown.
+function drawVolTicket(ctx, W, H, text, state) {
   const num = (text || '06').trim().toUpperCase() || '06';
   const m = Math.round(Math.min(W, H) * 0.02);
   const bw = Math.round(Math.min(W, H) * 0.16);
   const bh = Math.round(bw * 0.42);
-  const x = W - bw - m, y = m;
+  const x = W - bw - m, y = m + quoteHeight(H, state);
   ctx.save();
   ctx.fillStyle = '#14060f';
   ctx.strokeStyle = '#ffd23e';
@@ -427,12 +454,18 @@ function drawVolTicket(ctx, W, H, text) {
 }
 
 // A diagonal COLLECTOR'S EDITION ribbon across the top-right corner:
-// a hot-pink band at 45 degrees with white Anton text along it.
-function drawRibbon(ctx, W, H) {
+// a hot-pink band at 45 degrees with white Anton text along it. It slides
+// below the quote strip when the strip is shown: the band's topmost corner
+// must clear the strip's bottom edge, or the ribbon cuts the review line.
+function drawRibbon(ctx, W, H, state) {
   const bandH = Math.round(Math.min(W, H) * 0.075);
   const len = Math.round(W * 0.5);
+  const qh = quoteHeight(H, state);
+  const shift = qh
+    ? Math.max(0, qh + Math.round(0.707 * (len / 2 + bandH / 2)) - (len / 2 - bandH))
+    : 0;
   ctx.save();
-  ctx.translate(W - len / 2, len / 2 - bandH);
+  ctx.translate(W - len / 2, len / 2 - bandH + shift);
   ctx.rotate(Math.PI / 4);
   ctx.fillStyle = '#ff2e88';
   ctx.shadowColor = 'rgba(0,0,0,0.45)';
@@ -450,14 +483,15 @@ function drawRibbon(ctx, W, H) {
 }
 
 // Dispatches the badge by style. Starburst and EST. sit top-left (safe over
-// sky/street); WANTED, VOL. and the ribbon sit top-right.
+// sky/street); WANTED, VOL. and the ribbon sit top-right. Every badge sits
+// below the quote strip when the strip is shown.
 export function drawBadge(ctx, W, H, state) {
   const style = state.badgeStyle || 'starburst';
-  if (style === 'wanted') drawWanted(ctx, W, H);
-  else if (style === 'est') drawEstSeal(ctx, W, H);
-  else if (style === 'vol') drawVolTicket(ctx, W, H, state.badgeText);
-  else if (style === 'ribbon') drawRibbon(ctx, W, H);
-  else drawStarburst(ctx, W, H, state.badgeText);
+  if (style === 'wanted') drawWanted(ctx, W, H, state);
+  else if (style === 'est') drawEstSeal(ctx, W, H, state);
+  else if (style === 'vol') drawVolTicket(ctx, W, H, state.badgeText, state);
+  else if (style === 'ribbon') drawRibbon(ctx, W, H, state);
+  else drawStarburst(ctx, W, H, state);
 }
 
 // Default story label for each bundled sample photo: a character or a place
@@ -470,6 +504,9 @@ export const PANEL_LABELS = {
   neon: 'NEON ROW · 11:42 PM',
   pier: 'THE ANGLER · 5:42 PM',
   boulevard: 'OCEAN DRIVE · 5:42 PM',
+  driver: 'THE DRIVER · 9:15 PM',
+  rider: 'THE RIDER · 8:03 PM',
+  woman: 'THE INSIDER · 7:26 PM',
 };
 
 export function defaultPanelLabel(name) {
@@ -487,33 +524,139 @@ function badgeRectFor(W, H, state) {
   const min = Math.min(W, H);
   const m = Math.round(min * 0.02);
   const style = state.badgeStyle || 'starburst';
+  const qh = quoteHeight(H, state); // every badge sits below the quote strip
   if (style === 'starburst' || style === 'est') {
     const r = Math.round(min * (style === 'est' ? 0.075 : 0.085));
-    const cx = r + Math.round(W * 0.02), cy = r + Math.round(H * 0.025);
-    return { x0: 0, y0: 0, x1: cx + r + 8, y1: cy + r + 8 };
+    const cx = r + Math.round(W * 0.02), cy = r + Math.round(H * 0.025) + qh;
+    return { x0: 0, y0: qh, x1: cx + r + 8, y1: cy + r + 8 };
   }
   if (style === 'wanted') {
     const bw = Math.round(min * 0.19), bh = Math.round(bw * 0.58);
-    return { x0: W - bw - m - 8, y0: 0, x1: W, y1: m + bh + 8 };
+    return { x0: W - bw - m - 8, y0: qh, x1: W, y1: m + bh + 8 + qh };
   }
   if (style === 'vol') {
     const bw = Math.round(min * 0.16), bh = Math.round(bw * 0.42);
-    return { x0: W - bw - m - 8, y0: 0, x1: W, y1: m + bh + 8 };
+    return { x0: W - bw - m - 8, y0: qh, x1: W, y1: m + bh + 8 + qh };
   }
   if (style === 'ribbon') {
-    return { x0: Math.round(W * 0.5), y0: 0, x1: W, y1: Math.round(min * 0.32) };
+    const bandH = Math.round(min * 0.075);
+    const len = Math.round(W * 0.5);
+    const shift = qh
+      ? Math.max(0, qh + Math.round(0.707 * (len / 2 + bandH / 2)) - (len / 2 - bandH))
+      : 0;
+    return { x0: Math.round(W * 0.5), y0: qh, x1: W, y1: Math.round(min * 0.32) + shift };
   }
   return null;
 }
 
+// A five-star review strip across the top of the cover: gold stars, a
+// review quote and its source, the way the top covers open with a press
+// line. The strip is a dark band so it reads over any photo. Returns its
+// zone so panel labels can be pushed below it; null when hidden or empty.
+export function drawQuoteStrip(ctx, W, H, state) {
+  const quote = (state.quote || '').trim();
+  const qh = quoteHeight(H, state);
+  if (!qh) return null;
+  ctx.save();
+  ctx.fillStyle = 'rgba(5,2,10,0.72)';
+  ctx.fillRect(0, 0, W, qh);
+  ctx.fillStyle = 'rgba(255,210,62,0.6)';
+  ctx.fillRect(0, qh - Math.max(2, Math.round(H * 0.002)), W, Math.max(2, Math.round(H * 0.002)));
+  const source = (state.quoteSource || '').trim().toUpperCase();
+  // Three parts, measured as one centred line: gold stars, the quote in
+  // cream italic serif, the source in gold Anton caps.
+  let fs = Math.round(qh * 0.4);
+  const gap = Math.round(fs * 0.5);
+  const totalWidth = (f) => {
+    ctx.font = `${Math.round(f * 0.9)}px sans-serif`;
+    const starsW = ctx.measureText('★★★★★').width;
+    ctx.font = `italic 600 ${f}px Georgia, 'Times New Roman', serif`;
+    const quoteW = ctx.measureText(`“${quote}”`).width;
+    ctx.font = `900 ${Math.round(f * 0.78)}px Anton, sans-serif`;
+    const sourceW = source ? ctx.measureText(`— ${source}`).width : 0;
+    return starsW + gap + quoteW + (source ? gap + sourceW : 0);
+  };
+  while (fs > 10 && totalWidth(fs) > W * 0.92) fs = Math.round(fs * 0.92);
+  let x = (W - totalWidth(fs)) / 2;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  const cy = qh / 2 + Math.round(fs * 0.05);
+  ctx.font = `${Math.round(fs * 0.9)}px sans-serif`;
+  ctx.fillStyle = '#ffd23e';
+  ctx.fillText('★★★★★', x, cy);
+  x += ctx.measureText('★★★★★').width + gap;
+  ctx.font = `italic 600 ${fs}px Georgia, 'Times New Roman', serif`;
+  ctx.fillStyle = '#ffe9a8';
+  ctx.fillText(`“${quote}”`, x, cy);
+  x += ctx.measureText(`“${quote}”`).width + gap;
+  if (source) {
+    ctx.font = `900 ${Math.round(fs * 0.78)}px Anton, sans-serif`;
+    ctx.fillStyle = '#ffd23e';
+    ctx.fillText(`— ${source}`, x, cy);
+  }
+  ctx.restore();
+  return { x0: 0, y0: 0, x1: W, y1: qh };
+}
+
+// A production footer along the very bottom edge: an editable credit line
+// and a procedural barcode at the right (seeded bars, so every export is
+// byte-identical for the same state). The strip sits below the title block,
+// which measureTitleBlock already reserves room for.
+export function drawFooter(ctx, W, H, state) {
+  const fH = footerHeight(H, state);
+  if (!fH) return;
+  const y0 = H - fH;
+  ctx.save();
+  ctx.fillStyle = 'rgba(5,2,10,0.78)';
+  ctx.fillRect(0, y0, W, fH);
+  ctx.fillStyle = 'rgba(255,210,62,0.55)';
+  ctx.fillRect(0, y0, W, Math.max(2, Math.round(H * 0.002)));
+  const m = Math.round(Math.min(W, H) * 0.02);
+  const bw = Math.round(W * 0.085);
+  const bh = Math.round(fH * 0.6);
+  const bx = W - bw - m;
+  const by = y0 + Math.round((fH - bh) / 2);
+  // Barcode: white plate, black bars from a seeded generator.
+  ctx.fillStyle = '#f5f2e8';
+  ctx.fillRect(bx, by, bw, bh);
+  let seed = 20261120;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  ctx.fillStyle = '#14060f';
+  const unit = Math.max(1, bw / 90);
+  let x = bx + Math.round(bw * 0.05);
+  while (x < bx + bw - Math.round(bw * 0.05)) {
+    const wBar = Math.max(1, Math.round((1 + rnd() * 3) * unit));
+    const gap = Math.max(1, Math.round((1 + rnd() * 3) * unit));
+    if (rnd() > 0.25) ctx.fillRect(x, by + Math.round(bh * 0.06), wBar, Math.round(bh * 0.88));
+    x += wBar + gap;
+  }
+  // Credit line, centred in the space left of the barcode.
+  const text = (state.footer || '').trim().toUpperCase();
+  if (text) {
+    const maxW = bx - m - m;
+    let fs = Math.round(fH * 0.34);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    while (fs > 8) {
+      ctx.font = `700 ${fs}px 'Arial Narrow', sans-serif`;
+      if (ctx.measureText(text.split('').join('\u2009')).width <= maxW) break;
+      fs = Math.round(fs * 0.92);
+    }
+    ctx.font = `700 ${fs}px 'Arial Narrow', sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(text.split('').join('\u2009'), bx / 2, y0 + fH / 2 + Math.round(fs * 0.06));
+  }
+  ctx.restore();
+}
+
 // A small dark pill with white caps text in the top-left corner of a panel
 // with a photo. Top-left on purpose: the giant title block covers the foot
-// of the photos, so a bottom label would collide with it. Two collisions
-// are handled: a label under the badge is pushed below it, and a label
-// inside the title block's scrim zone (e.g. the key-art bottom strip) is
-// skipped entirely — a half-hidden label is worse than none.
+// of the photos, so a bottom label would collide with it. Collisions are
+// handled by pushing the pill down when it fits in the panel, sliding it
+// sideways away from a corner obstacle when it does not, and skipping it
+// only when neither works — a half-hidden label is worse than none.
 function drawPanelLabels(ctx, rects, panels, opts) {
-  const badge = opts?.badgeRect || null;
+  const obstacles = [opts?.quoteZone, opts?.badgeRect].filter(Boolean);
   const title = opts?.titleZone || null;
   const overlaps = (a, b) => a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
   rects.forEach((rect, i) => {
@@ -530,28 +673,28 @@ function drawPanelLabels(ctx, rects, panels, opts) {
     let x = rect.x + inset;
     let y = rect.y + inset;
     const w = tw + px * 2, h = fs + py * 2;
-    // Clear of the title block's scrim zone: skip, never half-hide.
-    if (title && overlaps({ x0: x, y0: y, x1: x + w, y1: y + h }, title)) {
+    const box = () => ({ x0: x, y0: y, x1: x + w, y1: y + h });
+    const fitsBelow = (zone) => zone.y1 + 8 + h <= rect.y + rect.h - 4;
+    // Clear of the title block's scrim zone: push below it when it fits
+    // (this is what lets bottom-row labels survive a centre title), skip
+    // when it does not (e.g. the key-art bottom strip under a bottom title).
+    if (title && overlaps(box(), title)) {
+      if (fitsBelow(title)) y = title.y1 + 8;
+      else { ctx.restore(); return; }
+    }
+    // Clear of each obstacle (quote strip, badge): push below when it fits,
+    // otherwise slide sideways away from it.
+    for (const ob of obstacles) {
+      if (!overlaps(box(), ob)) continue;
+      if (fitsBelow(ob)) y = ob.y1 + 8;
+      else if (ob.x0 <= 0) x = ob.x1 + 8;
+      else x = ob.x0 - 8 - w;
+    }
+    // A slide may have pushed the pill back into the title zone; skip if
+    // it is still colliding.
+    if (title && overlaps(box(), title)) {
       ctx.restore();
       return;
-    }
-    // Clear of the badge: push the pill below the badge when it fits in
-    // the panel, otherwise slide it sideways away from the badge.
-    if (badge && overlaps({ x0: x, y0: y, x1: x + w, y1: y + h }, badge)) {
-      const downY = badge.y1 + 8;
-      if (downY + h <= rect.y + rect.h - 4) {
-        y = downY;
-      } else if (badge.x0 <= 0) {
-        // Badge on the left: slide the pill right, past the badge.
-        x = badge.x1 + 8;
-      } else {
-        // Badge on the right: slide the pill left, past the badge.
-        x = badge.x0 - 8 - w;
-      }
-      if (title && overlaps({ x0: x, y0: y, x1: x + w, y1: y + h }, title)) {
-        ctx.restore();
-        return;
-      }
     }
     ctx.fillStyle = 'rgba(8,3,12,0.72)';
     ctx.beginPath();
@@ -589,7 +732,8 @@ export function halftone(ctx, W, H) {
 
 // Renders the whole cover. `state` carries layout, grade, size, caption,
 // subtitle, tagline, badgeText, badgeStyle, showBadge, halftone,
-// showPanelLabels, captionPos, captionScale, outline, textStyle, and
+// showPanelLabels, captionPos, captionScale, outline, textStyle, quote,
+// quoteSource, showQuote, footer, showFooter, and
 // panels: an array of { photo, zoom, ox, oy, caption } where photo is an
 // image element or null.
 // A panel with no photo gets a deep purple placeholder with its number.
@@ -629,15 +773,22 @@ export function renderCover(canvas, state) {
   gradeWash(ctx, W, H, state.grade || 'sunset');
   if (state.halftone) halftone(ctx, W, H);
   vignette(ctx, W, H);
+  // The quote strip sits at the very top; its zone pushes panel labels
+  // below it, the same way the badge does.
+  const quoteZone = drawQuoteStrip(ctx, W, H, state);
   // Panel labels go on before the title block (so the scrim never washes
-  // them), but they must stay clear of both the badge and the title zone.
+  // them), but they must stay clear of the quote strip, the badge and the
+  // title zone.
   const titleGeo = measureTitleBlock(ctx, W, H, state);
   const titleZone = titleGeo.pos === 'top'
     ? { x0: 0, y0: 0, x1: W, y1: titleGeo.topY + titleGeo.blockH + titleGeo.pad }
+    : titleGeo.pos === 'center'
+    ? { x0: 0, y0: titleGeo.topY - titleGeo.pad, x1: W, y1: titleGeo.topY + titleGeo.blockH + titleGeo.pad }
     : { x0: 0, y0: titleGeo.topY - titleGeo.pad, x1: W, y1: H };
   if (state.showPanelLabels !== false) {
-    drawPanelLabels(ctx, rects, panels, { badgeRect: badgeRectFor(W, H, state), titleZone });
+    drawPanelLabels(ctx, rects, panels, { badgeRect: badgeRectFor(W, H, state), titleZone, quoteZone });
   }
   drawTitleBlock(ctx, W, H, state);
+  drawFooter(ctx, W, H, state);
   if (state.showBadge) drawBadge(ctx, W, H, state);
 }

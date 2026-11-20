@@ -25,10 +25,15 @@ export const state = {
   showBadge: true,
   showPanelLabels: true,
   halftone: true,
-  captionPos: 'bottom',
+  captionPos: 'center',
   captionScale: 1,
   outline: 0.07,
   textStyle: 'sunset',
+  quote: 'A sunset that steals the whole show',
+  quoteSource: 'The Coast Review',
+  showQuote: true,
+  footer: 'A Vice Cover Studio production · Starring you · Made with your own photos',
+  showFooter: true,
   tray: [],
   panels: [],
   selectedPanel: 0,
@@ -116,7 +121,9 @@ function refreshTray() {
 }
 
 export async function loadSamples() {
-  const names = ['sunset', 'neon', 'pier', 'boulevard', 'lifeguard'];
+  // Portraits first: the default cover is led by people, the way the top
+  // covers are — the hero panel takes the first photo in the tray.
+  const names = ['driver', 'rider', 'woman', 'sunset', 'neon', 'pier', 'boulevard', 'lifeguard'];
   for (const name of names) {
     if (state.tray.some((t) => t.name === name)) continue;
     try {
@@ -205,6 +212,20 @@ document.getElementById('captionPos').addEventListener('change', (e) => {
 });
 document.getElementById('textStyle').addEventListener('change', (e) => {
   state.textStyle = e.target.value;
+  redraw();
+});
+const quoteInput = document.getElementById('quote');
+const quoteSourceInput = document.getElementById('quoteSource');
+const footerInput = document.getElementById('footer');
+quoteInput.addEventListener('input', () => { state.quote = quoteInput.value; redraw(); });
+quoteSourceInput.addEventListener('input', () => { state.quoteSource = quoteSourceInput.value; redraw(); });
+footerInput.addEventListener('input', () => { state.footer = footerInput.value; redraw(); });
+document.getElementById('showQuote').addEventListener('change', (e) => {
+  state.showQuote = e.target.checked;
+  redraw();
+});
+document.getElementById('showFooter').addEventListener('change', (e) => {
+  state.showFooter = e.target.checked;
   redraw();
 });
 const sizeRange = document.getElementById('captionSize');
@@ -364,6 +385,12 @@ window.__vice = {
   },
   setShowPanelLabels: (on) => { state.showPanelLabels = !!on; redraw(); },
   setHalftone: (on) => { state.halftone = !!on; redraw(); },
+  setQuote: (text) => { state.quote = text; const el = document.getElementById('quote'); if (el) el.value = text; redraw(); },
+  setQuoteSource: (text) => { state.quoteSource = text; const el = document.getElementById('quoteSource'); if (el) el.value = text; redraw(); },
+  setShowQuote: (on) => { state.showQuote = !!on; const el = document.getElementById('showQuote'); if (el) el.checked = !!on; redraw(); },
+  setFooter: (text) => { state.footer = text; const el = document.getElementById('footer'); if (el) el.value = text; redraw(); },
+  setShowFooter: (on) => { state.showFooter = !!on; const el = document.getElementById('showFooter'); if (el) el.checked = !!on; redraw(); },
+  setCaptionPos: (pos) => { state.captionPos = pos; const el = document.getElementById('captionPos'); if (el) el.value = pos; redraw(); },
 };
 
 const shot = new URLSearchParams(location.search).get('shot');

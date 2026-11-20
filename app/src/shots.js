@@ -2,7 +2,9 @@
 // (controls hidden), ?shot=editor shows the editor with photos loaded.
 // Query params: layout, grade, size, caption, subtitle, tagline, badge,
 // badgeStyle, halftone, photo (a comma list of sample names, one per panel,
-// the last one repeating), captions (per-panel labels, "|" separated).
+// the last one repeating), captions (per-panel labels, "|" separated),
+// captionPos (bottom/center/top), quote, quoteSource, showQuote,
+// footer, showFooter.
 // window.__shotReady is set once the scene has painted.
 
 import { defaultPanelLabel } from './cover.js';
@@ -42,9 +44,19 @@ export async function runShot(shot, query) {
   const showBadge = query.get('showBadge');
   if (showBadge !== null) { vice.state.showBadge = showBadge !== '0'; }
   const pos = query.get('captionPos');
-  if (pos) { vice.state.captionPos = pos; }
+  if (pos) { vice.setCaptionPos(pos); }
   const style = query.get('textStyle');
   if (style) { vice.state.textStyle = style; }
+  const quote = query.get('quote');
+  if (quote !== null) vice.setQuote(quote);
+  const quoteSource = query.get('quoteSource');
+  if (quoteSource !== null) vice.setQuoteSource(quoteSource);
+  const showQuote = query.get('showQuote');
+  if (showQuote !== null) vice.setShowQuote(showQuote !== '0');
+  const footer = query.get('footer');
+  if (footer !== null) vice.setFooter(footer);
+  const showFooter = query.get('showFooter');
+  if (showFooter !== null) vice.setShowFooter(showFooter !== '0');
   const photos = query.get('photo');
   if (photos) {
     const names = photos.split(',');
